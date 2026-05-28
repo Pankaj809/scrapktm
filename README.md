@@ -37,3 +37,25 @@ Each run creates a timestamped folder like:
 
 Note: The site currently presents an SSL chain issue. The scraper retries failed SSL handshakes without verification and logs a warning so the crawl can complete.
 
+## Curated corpus (30–50 PDFs)
+
+This repo includes a gold-standard subset of 50 PDFs in `curated_corpus/` with:
+
+- `curated_corpus_manifest.jsonl` (per-document metadata)
+- `curated_corpus_summary.md` (counts + listing)
+
+To regenerate the curated corpus:
+
+```bash
+python curate_corpus.py
+```
+
+You can override source roots if your scrape outputs are in different folders:
+
+```bash
+python curate_corpus.py \
+  --ktm-root /path/to/kathmandu_laws_scrape_YYYYMMDD_HHMMSS \
+  --lmc-root /path/to/kathmandu_laws_scrape_YYYYMMDD_HHMMSS \
+  --bkt-root /path/to/kathmandu_laws_scrape_YYYYMMDD_HHMMSS
+```
+
