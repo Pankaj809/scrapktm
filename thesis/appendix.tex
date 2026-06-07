@@ -1,0 +1,65 @@
+\appendix
+\chapter{Repository Structure}
+\label{app:repo}
+
+\begin{lstlisting}[language={},caption={Key files in the \texttt{scrapktm} repository.}]
+scrapktm/
+|-- scrape_kathmandu_laws.py      # Web scraper
+|-- curate_corpus.py              # Corpus curation
+|-- extract_corpus.py               # Hybrid extraction pipeline
+|-- embedding_benchmark.py          # FAISS retrieval benchmark
+|-- ground_truth_mapper.py          # Chunk ID alignment
+|-- research_query_bank_v1.md       # 11 evaluation queries
+|-- curated_corpus/                 # 50 gold-standard PDFs
+|-- curated_corpus_manifest.jsonl
+|-- extraction_output/
+|   |-- text/                     # Raw extracted text
+|   |-- chunks/                   # JSONL chunks (446 total)
+|   `-- extraction_summary.jsonl
+|-- pipeline/
+|   |-- router.py                   # DocumentRouter
+|   |-- chunking.py                 # Semantic chunking
+|   |-- extractors.py               # PyMuPDF + Surya
+|   `-- models.py
+`-- thesis/                         # This LaTeX package
+\end{lstlisting}
+
+\chapter{Sample Chunk JSONL Record}
+\label{app:chunk-sample}
+
+\begin{lstlisting}[language={},caption={Example chunk record from \texttt{LMC\_MUN\_004\_chunks.jsonl}.}]
+{
+  "chunk_id": "LMC_MUN_004_section_1",
+  "doc_id": "LMC_MUN_004",
+  "text": "...",
+  "start_char": 0,
+  "end_char": 760,
+  "heading": null,
+  "metadata": {"strategy": "semantic"}
+}
+\end{lstlisting}
+
+\chapter{Extraction CLI Reference}
+\label{app:cli}
+
+\begin{lstlisting}[language=bash,caption={Hybrid extraction pipeline invocation.}]
+python extract_corpus.py \
+  --surya-entrypoint surya_entrypoint:ocr_callable \
+  --surya-device mps \
+  --ocr-max-pages 2
+\end{lstlisting}
+
+\chapter{Ground-Truth Mapping Output}
+\label{app:gt-json}
+
+\begin{lstlisting}[language={},caption={Excerpt from \texttt{ground\_truth\_mapping.json}.}]
+{
+  "Q010": {
+    "query_id": "Q010",
+    "doc_id": "KTM_FIN_002",
+    "v2_chunk_id": "KTM_FIN_002_sec63_chunk_1",
+    "mapped_chunk_id": "KTM_FIN_002_section_63",
+    "score": 0.951
+  }
+}
+\end{lstlisting}

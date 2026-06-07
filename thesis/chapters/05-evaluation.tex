@@ -1,0 +1,110 @@
+\chapter{Evaluation Framework}
+\label{ch:evaluation}
+
+\section{Research Query Bank}
+We constructed an 11-query evaluation bank (\texttt{research\_query\_bank\_v1.md}) reflecting realistic Nepali--English code-switched information needs. Each query specifies:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{QID}: unique identifier (Q001--Q011)
+  \item \textbf{Query text}: mixed Nepali and English
+  \item \textbf{Failure mode}: anticipated retrieval difficulty
+  \item \textbf{Target document(s)}: expected source \texttt{doc\_id}
+  \item \textbf{Ground-truth chunk(s)}: annotated answer location
+\end{itemize}
+
+\Cref{tab:query-bank} summarizes the query bank.
+
+\begin{table}[H]
+  \centering
+  \caption{Research query bank overview (Q001--Q011).}
+  \label{tab:query-bank}
+  \small
+  \begin{tabular}{@{}clll@{}}
+    \toprule
+    \textbf{QID} & \textbf{Failure Mode} & \textbf{Target Doc} & \textbf{Theme} \\
+    \midrule
+    Q001 & Long list + code-switch & LMC\_MUN\_004 & Business registration docs \\
+    Q002 & Cross-reference + appendix & LMC\_MUN\_004 & Certificate format \\
+    Q003 & Conditional rule & LMC\_MUN\_004 & Multi-location registration \\
+    Q004 & Temporal rule & LMC\_MUN\_004 & Renewal deadline \\
+    Q005 & Long list extraction & BKT\_MUN\_001 & Map-pass documents \\
+    Q006 & Numeric multiplier & BKT\_MUN\_001 & Fee calculation \\
+    Q007 & Policy restriction & BKT\_MUN\_001 & Post-registration sale \\
+    Q008 & Cross-reference to annex & KTM\_FIN\_002 & Property tax basis \\
+    Q009 & Numeric table lookup & KTM\_FIN\_002 & Tax rate slab \\
+    Q010 & Multi-field table & KTM\_FIN\_002 & Parking fees \\
+    Q011 & Category disambiguation & KTM\_FIN\_002 & Advertisement fees \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{Example Queries}
+\begin{lstlisting}[language={},caption={Example code-switched queries from the research bank.},label={lst:queries}]
+Q001: "Lalitpur ma business registration application garda kun-kun
+       required documents chaincha? ..."
+Q009: "Property tax slab ma 1-2 karodko rate kati? exact % chaincha."
+Q010: "Kathmandu public parking ma two-wheeler vs four-wheeler fee kati?"
+\end{lstlisting}
+
+\section{Ground-Truth Mapping Problem}
+A critical evaluation lesson emerged during initial benchmarking: annotated chunk IDs in the query bank (v2 schema, e.g., \texttt{LMC\_MUN\_004\_sec2\_chunk\_4}) did not match machine-generated corpus IDs (e.g., \texttt{LMC\_MUN\_004\_section\_1}). Because Recall@5 and MRR perform \textbf{strict string matching} on \texttt{chunk\_id}, all baseline scores were 0.000 despite potentially relevant retrieved passages.
+
+\subsection{Mapper Algorithm}
+\texttt{ground\_truth\_mapper.py} resolves this by:
+\begin{enumerate}[leftmargin=*]
+  \item Loading ground-truth chunk text from \texttt{chunks\_v2} using the annotated ID.
+  \item Searching only within the target document's corpus chunks.
+  \item Scoring candidates via token Jaccard similarity on normalized text.
+  \item Emitting the best-matching corpus \texttt{chunk\_id} to \texttt{ground\_truth\_mapping.json}.
+\end{enumerate}
+
+\Cref{tab:gt-mapping} shows mapping confidence scores. High-confidence mappings ($>$0.8) occur for Kathmandu financial act queries (Q008--Q011); Lalitpur business registration queries map with lower lexical overlap due to OCR noise and chunk granularity differences.
+
+\begin{table}[H]
+  \centering
+  \caption{Ground-truth mapping results (v2 ID $\rightarrow$ corpus ID).}
+  \label{tab:gt-mapping}
+  \small
+  \begin{tabular}{@{}llllr@{}}
+    \toprule
+    \textbf{QID} & \textbf{v2 Chunk ID} & \textbf{Mapped Corpus ID} & \textbf{Doc} & \textbf{Score} \\
+    \midrule
+    Q001 & sec2\_chunk\_4 & section\_1 & LMC\_MUN\_004 & 0.29 \\
+    Q005 & sec3\_chunk\_1 & section\_4 & BKT\_MUN\_001 & 0.26 \\
+    Q008 & sec2\_chunk\_1 & section\_2 & KTM\_FIN\_002 & 0.85 \\
+    Q009 & sec9\_chunk\_1 & section\_9 & KTM\_FIN\_002 & 0.82 \\
+    Q010 & sec63\_chunk\_1 & section\_63 & KTM\_FIN\_002 & 0.95 \\
+    Q011 & sec61\_chunk\_1 & section\_61 & KTM\_FIN\_002 & 1.00 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{Metrics}
+\begin{description}[leftmargin=3cm,style=nextline]
+  \item[Recall@5] Binary hit rate: 1 if any ground-truth chunk appears in the top-5 retrieved results, else 0. Averaged over all queries.
+  \item[MRR] Mean Reciprocal Rank: for each query, $1/r$ where $r$ is the 1-based rank of the first correct chunk; 0 if not found. Averaged over all queries.
+\end{description}
+
+\section{Benchmark Protocol}
+\begin{enumerate}[leftmargin=*]
+  \item Load all \texttt{*\_chunks.jsonl} files from \texttt{extraction\_output/chunks/}.
+  \item Encode all chunk texts with the target embedding model (batch size 128).
+  \item Build FAISS index; encode each query; retrieve top-5 neighbors.
+  \item Compare retrieved \texttt{chunk\_id} against mapped ground-truth IDs.
+  \item Write per-query CSV rows to \texttt{retrieval\_benchmark\_results.csv}.
+\end{enumerate}
+
+Recommended macOS invocation:
+\begin{lstlisting}[language=bash,caption={Embedding benchmark execution command.}]
+KMP_DUPLICATE_LIB_OK=TRUE OMP_NUM_THREADS=1 \
+  ./.venv/bin/python embedding_benchmark.py \
+  --chunks-dir extraction_output/chunks \
+  --query-bank-md research_query_bank_v1.md \
+  --output-csv retrieval_benchmark_results.csv \
+  --top-k 5 --batch-size 128
+\end{lstlisting}
+
+For BGE-M3 offline use, pre-download via Hugging Face mirror:
+\begin{lstlisting}[language=bash,caption={Offline BGE-M3 model download.}]
+export HF_ENDPOINT=https://hf-mirror.com
+huggingface-cli download BAAI/bge-m3
+\end{lstlisting}

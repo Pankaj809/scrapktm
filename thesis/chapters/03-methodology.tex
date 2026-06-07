@@ -1,0 +1,103 @@
+\chapter{Methodology}
+\label{ch:methodology}
+
+\section{System Overview}
+The \texttt{scrapktm} pipeline comprises five stages: web scraping, corpus curation, hybrid extraction, semantic chunking, and embedding-based retrieval evaluation. \Cref{fig:pipeline} summarizes the architecture.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    node distance=0.55cm and 0.7cm,
+    box/.style={draw, rounded corners, align=center, minimum width=2.6cm, minimum height=0.85cm, font=\small},
+    arrow/.style={-{Stealth[length=2mm]}, thick}
+  ]
+    \node[box, fill=routeblue!15] (scrape) {Web Scraper\\\scriptsize law portals};
+    \node[box, fill=routegreen!15, right=of scrape] (curate) {Corpus\\Curation};
+    \node[box, fill=routeorange!15, right=of curate] (router) {Document\\Router};
+    \node[box, fill=routegreen!20, below=0.7cm of router, xshift=-1.4cm] (pymupdf) {PyMuPDF\\text-based};
+    \node[box, fill=routeorange!20, below=0.7cm of router, xshift=1.4cm] (surya) {Surya OCR\\scanned};
+    \node[box, fill=routeblue!15, below=1.5cm of router] (chunk) {Semantic\\Chunking};
+    \node[box, fill=routegray!15, below=of chunk] (index) {FAISS Index\\+ Benchmark};
+
+    \draw[arrow] (scrape) -- (curate);
+    \draw[arrow] (curate) -- (router);
+    \draw[arrow] (router) -- (pymupdf);
+    \draw[arrow] (router) -- (surya);
+    \draw[arrow] (pymupdf) -- (chunk);
+    \draw[arrow] (surya) -- (chunk);
+    \draw[arrow] (chunk) -- (index);
+  \end{tikzpicture}
+  \caption{End-to-end \texttt{scrapktm} pipeline architecture.}
+  \label{fig:pipeline}
+\end{figure}
+
+\section{Web Scraping}
+The scraper (\texttt{scrape\_kathmandu\_laws.py}) crawls paginated law listings on the Kathmandu Metropolitan City portal across three categories: national, provincial, and historical laws. It visits detail pages, extracts PDF links, and downloads files into a timestamped directory structure with per-category metadata (\texttt{items.jsonl}, \texttt{items.csv}, \texttt{manifest.json}).
+
+Additional targets include Lalitpur and Bhaktapur municipal act-law pages. The scraper handles SSL chain issues on the Kathmandu portal via retry logic and logs warnings for transparency.
+
+\section{Corpus Curation}
+From raw scrape outputs, \texttt{curate\_corpus.py} selects 50 gold-standard documents balanced across:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Sources}: federal (9), Kathmandu (13), Lalitpur (15), Bhaktapur (13)
+  \item \textbf{Categories}: national law, municipal bylaw, administrative procedure, financial document
+  \item \textbf{Formats}: text-based (45) and scanned (5)
+\end{itemize}
+Each entry in \texttt{curated\_corpus\_manifest.jsonl} records \texttt{doc\_id}, title, page count, \texttt{format\_type}, source, and category.
+
+\section{Hybrid Document Router}
+The extraction pipeline (\texttt{extract\_corpus.py}) reads the manifest and routes each PDF through \texttt{DocumentRouter}:
+\begin{itemize}[leftmargin=*]
+  \item \texttt{text\_based} $\rightarrow$ PyMuPDF extractor (fast, deterministic)
+  \item \texttt{scanned} $\rightarrow$ Surya OCR (MPS-accelerated on Apple Silicon)
+  \item Unknown types default to PyMuPDF with a logged warning
+\end{itemize}
+
+OCR outputs may include an accuracy score and notes, recorded in \texttt{extraction\_summary.jsonl} as a confounding factor for downstream analysis.
+
+\section{Semantic Chunking}
+The chunking module (\texttt{pipeline/chunking.py}) applies a two-tier strategy:
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Semantic sections}: Split on heading patterns including numbered sections, ALL-CAPS lines, and Nepali markers (\emph{adhiyaa}, \emph{dhaaraa}).
+  \item \textbf{Fixed fallback}: \texttt{RecursiveCharacterTextSplitter} with 512-token chunks and 128-token overlap when sections exceed size limits or lack headings.
+\end{enumerate}
+
+Each chunk is stored as JSONL with fields: \texttt{chunk\_id}, \texttt{doc\_id}, \texttt{text}, \texttt{start\_char}, \texttt{end\_char}, \texttt{heading}, and \texttt{metadata.strategy}.
+
+\section{Chunk ID Schema}
+Machine-generated IDs follow the pattern \texttt{\{DOC\_ID\}\_section\_\{N\}} (e.g., \texttt{LMC\_MUN\_004\_section\_17}). This differs from manually annotated v2 IDs such as \texttt{LMC\_MUN\_004\_sec2\_chunk\_4}, which motivated the ground-truth mapper described in \Cref{ch:evaluation}.
+
+\section{Embedding Benchmark}
+\texttt{embedding\_benchmark.py} builds an in-memory FAISS index over all corpus chunks using cosine similarity (inner product on L2-normalized vectors). For each query, it retrieves top-$k$ neighbors and computes:
+\begin{align}
+  \text{Recall@5} &= \mathbb{1}[\text{ground-truth chunk} \in \text{top-5}] \\
+  \text{MRR} &= \frac{1}{\text{rank of first correct chunk}}, \quad 0 \text{ if absent}
+\end{align}
+
+Models evaluated:
+\begin{itemize}[leftmargin=*]
+  \item \texttt{sentence-transformers/all-MiniLM-L6-v2} --- English-centric baseline
+  \item \texttt{BAAI/bge-m3} --- multilingual target model (2.27\,GB)
+\end{itemize}
+
+On macOS, OpenMP conflicts between FAISS and PyTorch are mitigated via \texttt{KMP\_DUPLICATE\_LIB\_OK=TRUE} and \texttt{OMP\_NUM\_THREADS=1}.
+
+\section{Implementation Stack}
+\begin{table}[H]
+  \centering
+  \caption{Core dependencies of the \texttt{scrapktm} pipeline.}
+  \label{tab:dependencies}
+  \begin{tabular}{@{}ll@{}}
+    \toprule
+    \textbf{Component} & \textbf{Library / Tool} \\
+    \midrule
+    HTTP scraping       & \texttt{requests}, BeautifulSoup \\
+    PDF text extraction & PyMuPDF \\
+    OCR                 & Surya OCR (optional entrypoint) \\
+    Chunking            & LangChain text splitters \\
+    Embeddings          & sentence-transformers \\
+    Vector search       & FAISS \\
+    Deep learning       & PyTorch (MPS backend) \\
+    \bottomrule
+  \end{tabular}
+\end{table}

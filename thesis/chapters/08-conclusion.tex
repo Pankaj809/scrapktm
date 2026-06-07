@@ -1,0 +1,37 @@
+\chapter{Conclusion and Future Work}
+\label{ch:conclusion}
+
+\section{Summary}
+This thesis presented \texttt{scrapktm}, a reproducible pipeline for semantic retrieval over Nepali municipal legal documents. The system scrapes and curates a 50-document gold-standard corpus (830 pages, 446 chunks), routes PDFs through a hybrid PyMuPDF/Surya OCR extractor, applies semantic chunking, and benchmarks dense retrieval with FAISS.
+
+The 11-query research bank exposes realistic failure modes---list extraction, table lookup, cross-references, and code-switching---that monolingual English baselines struggle to address. A ground-truth mapping utility diagnoses chunk-ID schema mismatches that otherwise mask retrieval quality entirely.
+
+\section{Key Findings}
+\begin{enumerate}[leftmargin=*]
+  \item Strict chunk-ID evaluation can produce zero metrics even when retrieval is partially correct.
+  \item Kathmandu financial documents yield the highest ground-truth mapping confidence due to clean text and preserved section numbering.
+  \item Lalitpur business registration documents suffer from OCR noise and coarse chunking, depressing both mapping and projected recall.
+  \item Multilingual embeddings (BGE-M3) with offline caching are essential for Nepali legal RAG on local hardware.
+\end{enumerate}
+
+\section{Future Work}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Expand corpus and query bank}: Scale to 200+ documents and 50+ annotated queries with inter-annotator agreement.
+  \item \textbf{Hybrid retrieval}: Combine dense embeddings with BM25 over Devanagari-tokenized text.
+  \item \textbf{Cross-encoder reranking}: Add a second-stage reranker for top-20 candidates.
+  \item \textbf{End-to-end RAG evaluation}: Measure answer correctness with LLM-as-judge and human legal review.
+  \item \textbf{OCR improvement}: Fine-tune or post-process Surya output for Nepali legal typography.
+  \item \textbf{Production deployment}: Package as a municipal legal assistant with citation-backed responses.
+  \item \textbf{Unified chunk schema}: Enforce a single chunk-ID convention across annotation, indexing, and UI citation.
+\end{itemize}
+
+\section{Reproducibility Statement}
+All code, corpus manifests, query banks, and benchmark scripts are available in the \texttt{scrapktm} repository. Researchers can reproduce results by:
+\begin{enumerate}[leftmargin=*]
+  \item Installing dependencies from \texttt{requirements.txt}.
+  \item Running \texttt{extract\_corpus.py} against the curated manifest.
+  \item Executing \texttt{ground\_truth\_mapper.py} to align annotations.
+  \item Running \texttt{embedding\_benchmark.py} with locally cached models.
+\end{enumerate}
+
+The pipeline requires no external API services for retrieval evaluation, supporting fully offline research on Apple Silicon hardware.

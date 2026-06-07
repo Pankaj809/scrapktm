@@ -1,0 +1,47 @@
+\section{Evaluation Metrics Explained}
+\begin{frame}{Understanding the Metrics}
+    \begin{block}{What is Recall@5?}
+        \textbf{Recall@5} measures the probability that the correct piece of information (the target chunk) appears in the \textbf{top 5 search results}.
+        \begin{itemize}
+            \item If the system returns 5 paragraphs, and one of them is the exact answer you need, Recall@5 is 100\% (1.0).
+            \item If the answer isn't in the top 5, it is 0\%.
+            \item \textit{Why it matters:} In a RAG system, the LLM reads the top results. If the answer is not in the top 5, the LLM cannot answer the user.
+        \end{itemize}
+    \end{block}
+    
+    \vspace{0.3cm}
+    \begin{block}{What is Mean Reciprocal Rank (MRR)?}
+        \textbf{MRR} evaluates \textbf{where} the correct answer ranks in the list.
+        \begin{itemize}
+            \item If the correct answer is \#1, the score is $1/1 = 1.0$.
+            \item If it is \#2, the score is $1/2 = 0.5$.
+            \item If it is \#3, the score is $1/3 = 0.33$, and so on.
+            \item \textit{Why it matters:} Higher MRR means the user (or the LLM) doesn't have to read through irrelevant documents to find the truth.
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+\section{LLM vs Hybrid RAG Example}
+\begin{frame}{Direct LLM vs. Our LangChain System}
+    \begin{table}[]
+        \centering
+        \footnotesize
+        \begin{tabular}{@{}p{4cm} p{4.5cm} p{4.5cm}@{}}
+        \toprule
+        \textbf{Citizen Query} & \textbf{Direct LLM (ChatGPT/Claude)} & \textbf{Our Local LangChain RAG} \\ \midrule
+        
+        \textit{"Kathmandu public parking मा two-wheeler fee कति?"} & 
+        \textcolor{red}{\textbf{Hallucination:}} "Typically, Kathmandu municipality charges Rs 15-20 per hour for two-wheelers, but you should check the latest website." & 
+        \textcolor{green}{\textbf{Accurate (from PDF):}} "As per KTM\_FIN\_002, the fee is \textbf{Rs 15 for the first half-hour}, and \textbf{Rs 25 per hour}." \\ \midrule
+        
+        \textit{"Property tax slab मा १–२ करोडको rate कति? exact \% चाहिन्छ।"} & 
+        \textcolor{red}{\textbf{Missing Knowledge:}} "I don't have access to the exact 2024 tax slabs for Kathmandu Municipality." & 
+        \textcolor{green}{\textbf{Accurate (from PDF):}} "The property tax for the 1 to 2 crore slab is \textbf{0.015\%} (Rs 1500)." \\ \midrule
+        
+        \textit{"Bhaktapur नक्सा पास application मा documents के के चाहिन्छ?"} & 
+        \textcolor{red}{\textbf{Generic Guess:}} "You generally need citizenship, land ownership certificate, and blueprint." & 
+        \textcolor{green}{\textbf{Accurate (from PDF):}} Retrieves the exact 11-item checklist from BKT\_MUN\_001 Section 3. \\ \bottomrule
+        \end{tabular}
+        \caption{Why Local RAG beats Direct LLM on local governance data}
+    \end{table}
+\end{frame}

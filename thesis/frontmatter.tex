@@ -1,0 +1,51 @@
+\begin{titlepage}
+  \centering
+  \vspace*{1.5cm}
+  {\LARGE\bfseries Tribhuvan University\par}
+  \vspace{0.4cm}
+  {\large Institute of Engineering / Department of Computer Science\par}
+  \vspace{2cm}
+  {\huge\bfseries Semantic Retrieval over Nepali Municipal Legal Documents:\par}
+  \vspace{0.5cm}
+  {\LARGE\bfseries A Hybrid Extraction and Embedding Benchmark Pipeline\par}
+  \vspace{2cm}
+  {\Large A Thesis Submitted in Partial Fulfillment of the Requirements\par}
+  {\Large for the Degree of Master of Science in Computer Science\par}
+  \vspace{2cm}
+  {\large\textbf{Submitted by}\par}
+  {\Large Author Name\par}
+  \vspace{0.5cm}
+  {\large Roll No.: XXXX-XX-XXXX\par}
+  \vspace{2cm}
+  {\large\textbf{Supervisor}\par}
+  {\Large Supervisor Name, Ph.D.\par}
+  \vfill
+  {\large Kathmandu, Nepal\par}
+  {\large \today\par}
+\end{titlepage}
+
+\pagenumbering{roman}
+\chapter*{Declaration}
+I hereby declare that this thesis entitled \emph{Semantic Retrieval over Nepali Municipal Legal Documents: A Hybrid Extraction and Embedding Benchmark Pipeline} is my original work carried out under the supervision of Supervisor Name. This work has not been submitted elsewhere for any academic degree.
+
+\vspace{1.5cm}
+\noindent\textbf{Author Name}\\
+Date: \today
+
+\chapter*{Acknowledgements}
+I express sincere gratitude to my supervisor, faculty members, and peers who supported this research. I also acknowledge the municipal governments of Kathmandu, Lalitpur, and Bhaktapur for publishing legal documents that enabled this corpus study.
+
+\chapter*{Abstract}
+Municipal legal information in Nepal is predominantly published as PDF documents in Devanagari script, mixing formal Nepali with administrative English terminology. Citizens and researchers struggle to locate precise clauses across fragmented municipal portals. This thesis presents \textbf{scrapktm}, an end-to-end research pipeline that (1)~scrapes and curates a gold-standard corpus of 50 legal PDFs spanning federal, Kathmandu, Lalitpur, and Bhaktapur sources; (2)~routes each document through a hybrid extractor combining PyMuPDF for text-based PDFs and Surya OCR for scanned documents; (3)~applies semantic chunking with heading-aware segmentation and fixed-size fallback; and (4)~evaluates dense retrieval using FAISS over 446 chunks with an 11-query research bank featuring Nepali--English code-switching.
+
+A controlled benchmark compares \texttt{all-MiniLM-L6-v2} (English-centric baseline) against \texttt{BAAI/bge-m3} (multilingual) using Recall@5 and Mean Reciprocal Rank (MRR). Initial runs revealed a critical evaluation pitfall: manually annotated ground-truth chunk identifiers did not match machine-generated chunk IDs, yielding zero scores even when semantically relevant passages existed. A lexical ground-truth mapper resolves this mismatch by aligning annotation IDs to corpus chunks within each document.
+
+The pipeline demonstrates that retrieval quality for Nepali legal text depends jointly on extraction fidelity, chunk granularity, multilingual embeddings, and rigorous evaluation hygiene. The curated corpus, query bank, and benchmark scripts constitute a reproducible foundation for retrieval-augmented generation (RAG) systems serving municipal legal assistance in Nepal.
+
+\textbf{Keywords:} Nepali legal text, semantic retrieval, PDF extraction, OCR, FAISS, embedding benchmark, municipal corpus, RAG
+
+\tableofcontents
+\listoffigures
+\listoftables
+\cleardoublepage
+\pagenumbering{arabic}

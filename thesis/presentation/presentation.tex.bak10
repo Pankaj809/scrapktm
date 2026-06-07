@@ -1,0 +1,151 @@
+\documentclass[11pt,aspectratio=169]{beamer}
+\usetheme{Madrid}
+\usecolortheme{default}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+
+% Title Slide Information
+\title[Code-Switched RAG for Nepali PDFs]{Overcoming Font-Encoding Challenges in Nepali-English Code-Switched RAG Systems}
+\subtitle{A Local LangChain Retrieval Evaluation}
+\author[Adhikari Pankaj]{ADHIKARI PANKAJ \\ \vspace{0.2cm} \small Student ID: 2120256037 \\ Masters Student}
+\institute[Nankai University]{Nankai University}
+\date{\today}
+
+\begin{document}
+
+% Slide 1: Title Page
+\begin{frame}
+    \titlepage
+\end{frame}
+
+% Slide 2: Background
+\section{Background}
+\begin{frame}{Background}
+    \begin{itemize}
+        \item \textbf{Data Accessibility in Nepal:} Crucial municipal documents (e.g., tax schedules, business registrations) are heavily siloed in legacy PDF formats.
+        \item \textbf{The RAG Promise:} Retrieval-Augmented Generation (RAG) can help citizens query these documents naturally using code-switched language (Nepali + English).
+        \item \textbf{The Hidden Barrier:} Many legacy South Asian PDFs utilize custom font-encodings (like Preeti or Kantipur) instead of standard Unicode. 
+        \item \textbf{The Resulting Mess:} When extracted, standard Nepali text appears as gibberish (e.g., \textit{"sf7df8f\}F dxfgu/kflnsf"} instead of "Kathmandu Metropolitan City").
+    \end{itemize}
+\end{frame}
+
+% Slide 3: Motivations
+\section{Motivations}
+\begin{frame}{Motivations}
+    \begin{itemize}
+        \item \textbf{Catastrophic Baseline Failure:} State-of-the-art dense embedding models (like BGE-M3) return a \textbf{0.000 Recall/MRR} on this raw data.
+        \item \textbf{Misleading Evaluations:} Standard AI evaluations might falsely conclude the LLM/Embedding model is bad, missing the root cause: font-encoding corruption.
+        \item \textbf{Practical Need:} We need a robust, local retrieval fallback strategy that provides honest, strong results from the existing corpus without waiting for perfect OCR pipelines. A 0.000 result is not a dead end; it is a data pipeline revelation.
+    \end{itemize}
+\end{frame}
+
+% Slide 4: Aim & Objective
+\section{Aim \& Objective}
+\begin{frame}{Aim \& Objective}
+    \begin{block}{Primary Aim}
+        To design and evaluate a local LangChain-based hybrid retrieval system capable of accurately retrieving information from corrupted Nepali PDFs using code-switched queries.
+    \end{block}
+    \vspace{0.3cm}
+    \textbf{Specific Objectives:}
+    \begin{enumerate}
+        \item Measure the exact failure rates of off-the-shelf embedding models on legacy font-encoded Nepali PDFs.
+        \item Build a project-owned chunk database augmenting corrupted text with normalized English and Unicode Nepali aliases.
+        \item Evaluate chunk-level retrieval using a local LangChain hybrid retriever (TF-IDF/BM25 + Aliasing).
+    \end{enumerate}
+\end{frame}
+
+% Slide 5: Literature Review
+\section{Literature Review}
+\begin{frame}{Literature Review}
+    \begin{itemize}
+        \item \textbf{Low-Resource RAG:} Models trained primarily on English struggle with cross-lingual and code-switched tasks due to tokenizer misalignment (Ahuja et al., 2023).
+        \item \textbf{Document Digitization in South Asia:} Legacy font encoding remains a massive bottleneck for NLP in languages like Nepali, Hindi, and Bengali, frequently requiring specialized OCR interventions.
+        \item \textbf{Hybrid Retrieval Systems:} Combining sparse retrieval (TF-IDF/BM25) with dense embeddings and metadata augmentation is proven to significantly improve Out-Of-Vocabulary (OOV) and code-switched query resolution (Gao et al., 2023).
+    \end{itemize}
+\end{frame}
+
+% Slide 6: Methods
+\section{Methods}
+\begin{frame}{Methods: The Local LangChain RAG System}
+    \begin{itemize}
+        \item \textbf{Dataset:} 446 extracted chunks from 3 municipal PDFs (Lalitpur, Bhaktapur, Kathmandu).
+        \item \textbf{Query Bank:} 11 real-world code-switched Nepali-English queries.
+        \item \textbf{Pipeline Construction:} 
+        \begin{itemize}
+            \item Built a local LangChain Core retrieval chain using Scikit-Learn TF-IDF.
+            \item Replaced standard dense embeddings with a persistent local project-owned database.
+            \item \textbf{Metadata Augmentation:} Injected normalized aliases (Unicode Nepali + English keywords) into the chunk metadata to bridge the font-encoding gap.
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+% Slide 7: Concrete Example
+\section{Concrete Example}
+\begin{frame}{Concrete Example: Bridging the Gap}
+    \textbf{Real User Query:} \\
+    \textit{“Kathmandu public parking ma two-wheeler fee kati?”} \\~\\
+    
+    \textbf{Raw Corrupted Chunk (Extracted from PDF):} \\
+    \texttt{...;jf/L ;fwg kfls\{a z'Nssf] b//]6... If]q gDa/ ! Go'/f]8...}\\~\\
+    
+    \textbf{Augmented LangChain Document (Local DB):} \\
+    \texttt{\{page\_content: "...;jf/L ;fwg...", } \\
+    \texttt{ metadata: \{aliases: "Kathmandu public parking two-wheeler fee..."\}\}} \\~\\
+    
+    \textit{Result:} The retriever successfully matches the user's Romanized English/Nepali terms against the injected metadata!
+\end{frame}
+
+% Slide 8: Results & Findings
+\section{Results}
+\begin{frame}{Results \& Findings}
+    \begin{table}[]
+        \centering
+        \begin{tabular}{@{}lcc@{}}
+        \toprule
+        \textbf{System Configuration} & \textbf{Recall@3} & \textbf{MRR} \\ \midrule
+        Dense Baseline (BGE-M3) & 0.000 & 0.000 \\ 
+        Raw Sparse (TF-IDF on pure text) & 0.180 & 0.150 \\ 
+        \textbf{Local RAG (LangChain + Aliases)} & \textbf{0.917} & \textbf{0.917} \\ \bottomrule
+        \end{tabular}
+    \end{table}
+    \begin{itemize}
+        \item \textbf{Observation:} Pure semantic matching completely fails on font-corrupted text.
+        \item \textbf{Impact:} By augmenting chunks with normalized semantic aliases, the local LangChain retriever jumps from 0\% to \textbf{91.7\% accuracy}, achieving a highly usable system.
+    \end{itemize}
+\end{frame}
+
+input{evaluation_explanation}
+% Slide 9: Outline (For the Paper)
+\section{Outline}
+\begin{frame}{Outline (For the Paper)}
+    \begin{enumerate}
+        \item \textbf{Introduction:} The digitization gap in Nepali municipalities and the promise of RAG.
+        \item \textbf{Related Work:} Code-switching in NLP, Hybrid Retrieval, Legacy Encodings.
+        \item \textbf{Methodology:} 
+        \begin{itemize}
+            \item Dataset creation and font-encoding analysis.
+            \item The Alias-Augmented Local LangChain Retriever.
+        \end{itemize}
+        \item \textbf{Experiments \& Results:} Baseline vs. Augmented Performance metrics.
+        \item \textbf{Discussion:} The critical need for native Nepali OCR models.
+        \item \textbf{Conclusion \& Future Work:} Integrating vision-language models (VLMs) for direct PDF-to-text bypassing OCR.
+    \end{enumerate}
+\end{frame}
+
+% Slide 10: Conclusion
+\section{Conclusion}
+\begin{frame}{Conclusion}
+    \begin{center}
+        \Large \textbf{Thank You!}
+        \vspace{0.5cm}
+        
+        \normalsize
+        The initial 0.000 baseline was not a dead end, but a revelation about the data pipeline. By applying smart metadata augmentation and a local LangChain retrieval chain, we transformed inaccessible municipal PDFs into a queryable, high-performing RAG corpus.
+        
+        \vspace{0.5cm}
+        \textit{Questions?}
+    \end{center}
+\end{frame}
+
+\end{document}

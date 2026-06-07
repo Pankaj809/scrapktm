@@ -1,0 +1,79 @@
+{
+  "Q001": {
+    "query_id": "Q001",
+    "doc_id": "LMC_MUN_004",
+    "v2_chunk_id": "LMC_MUN_004_sec2_chunk_4",
+    "mapped_chunk_id": "LMC_MUN_004_section_1",
+    "score": 0.29285714285714287
+  },
+  "Q002": {
+    "query_id": "Q002",
+    "doc_id": "LMC_MUN_004",
+    "v2_chunk_id": "LMC_MUN_004_sec2_chunk_5",
+    "mapped_chunk_id": "LMC_MUN_004_section_1",
+    "score": 0.19863013698630136
+  },
+  "Q003": {
+    "query_id": "Q003",
+    "doc_id": "LMC_MUN_004",
+    "v2_chunk_id": "LMC_MUN_004_sec2_chunk_6",
+    "mapped_chunk_id": "LMC_MUN_004_section_1",
+    "score": 0.24475524475524477
+  },
+  "Q004": {
+    "query_id": "Q004",
+    "doc_id": "LMC_MUN_004",
+    "v2_chunk_id": "LMC_MUN_004_sec2_chunk_7",
+    "mapped_chunk_id": "LMC_MUN_004_section_1",
+    "score": 0.3384615384615385
+  },
+  "Q005": {
+    "query_id": "Q005",
+    "doc_id": "BKT_MUN_001",
+    "v2_chunk_id": "BKT_MUN_001_sec3_chunk_1",
+    "mapped_chunk_id": "BKT_MUN_001_section_4",
+    "score": 0.26180257510729615
+  },
+  "Q006": {
+    "query_id": "Q006",
+    "doc_id": "BKT_MUN_001",
+    "v2_chunk_id": "BKT_MUN_001_sec3_chunk_5",
+    "mapped_chunk_id": "BKT_MUN_001_section_4",
+    "score": 0.26548672566371684
+  },
+  "Q007": {
+    "query_id": "Q007",
+    "doc_id": "BKT_MUN_001",
+    "v2_chunk_id": "BKT_MUN_001_sec3_chunk_7",
+    "mapped_chunk_id": "BKT_MUN_001_section_3",
+    "score": 0.2574074074074074
+  },
+  "Q008": {
+    "query_id": "Q008",
+    "doc_id": "KTM_FIN_002",
+    "v2_chunk_id": "KTM_FIN_002_sec2_chunk_1",
+    "mapped_chunk_id": "KTM_FIN_002_section_2",
+    "score": 0.8533333333333334
+  },
+  "Q009": {
+    "query_id": "Q009",
+    "doc_id": "KTM_FIN_002",
+    "v2_chunk_id": "KTM_FIN_002_sec9_chunk_1",
+    "mapped_chunk_id": "KTM_FIN_002_section_9",
+    "score": 0.8194444444444444
+  },
+  "Q010": {
+    "query_id": "Q010",
+    "doc_id": "KTM_FIN_002",
+    "v2_chunk_id": "KTM_FIN_002_sec63_chunk_1",
+    "mapped_chunk_id": "KTM_FIN_002_section_63",
+    "score": 0.951048951048951
+  },
+  "Q011": {
+    "query_id": "Q011",
+    "doc_id": "KTM_FIN_002",
+    "v2_chunk_id": "KTM_FIN_002_sec61_chunk_1",
+    "mapped_chunk_id": "KTM_FIN_002_section_61",
+    "score": 1.0
+  }
+}
