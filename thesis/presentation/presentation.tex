@@ -1,180 +1,340 @@
+% !TEX program = pdflatex
+% Thesis defense slides — ~5–6 minutes, 14 slides
+% Build: cd thesis && make slides
+% PPTX:  cd thesis && make pptx  (requires LibreOffice)
+
 \documentclass[11pt,aspectratio=169]{beamer}
 \usetheme{Madrid}
-\usecolortheme{default}
-\usepackage{graphicx}
-\usepackage{booktabs}
-\usepackage{hyperref}
-\usepackage{xcolor}
+\usecolortheme{whale}
+\usefonttheme{structurebold}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
 
-% Title Slide Information
-\title[Code-Switched RAG for Nepali PDFs]{Overcoming Font-Encoding Challenges in Nepali-English Code-Switched RAG Systems}
-\subtitle{A Local LangChain Retrieval Evaluation}
-\author[Adhikari Pankaj]{ADHIKARI PANKAJ \\ \vspace{0.2cm} \small Student ID: 2120256037 \\ Masters Student}
+\input{preamble-beamer}
+
+\title[RAG for Nepali Gov Docs]{Retrieval-Augmented Generation for\\Nepali Government Documents}
+\subtitle{A Hybrid Pipeline for Low-Resource, Code-Switched Legal Text}
+\author[Adhikari Pankaj]{ADHIKARI PANKAJ\\[0.2cm]\small Student ID: 2120256037 \textbullet\ Masters Student}
 \institute[Nankai University]{Nankai University}
 \date{\today}
 
 \begin{document}
 
-% Slide 1: Title Page
+%==============================================================================
 \begin{frame}
-    \titlepage
+  \titlepage
+  \note{Open with the citizen-facing problem: municipal rules exist as PDFs, not chatbots. This project asks whether a local RAG system can retrieve exact legal clauses from Nepali government documents.}
 \end{frame}
 
-% Slide 2: Background
-\section{Background}
-\begin{frame}{Background}
+%==============================================================================
+\section{Introduction}
+\begin{frame}{Introduction: What is RAG?}
+  \begin{block}{\ragterm{Retrieval-Augmented Generation (RAG)} — in plain language}
+    Instead of asking an AI to \emph{remember} laws, we first \textbf{search official PDFs} for the right paragraph, then let the AI \textbf{read that paragraph} to answer.
+  \end{block}
+  \vspace{0.25cm}
+  \begin{columns}[T]
+    \column{0.48\textwidth}
+    \textbf{Why it matters}
     \begin{itemize}
-        \item \textbf{Data Accessibility in Nepal:} Crucial municipal documents (e.g., tax schedules, business registrations) are heavily siloed in legacy PDF formats.
-        \item \textbf{The RAG Promise:} Retrieval-Augmented Generation (RAG) can help citizens query these documents naturally using code-switched language (Nepali + English).
-        \item \textbf{The Hidden Barrier:} Many legacy South Asian PDFs utilize custom font-encodings (like Preeti) instead of standard Unicode. 
-        \item \textbf{The Resulting Mess:} When extracted, standard text appears as gibberish (e.g., \textit{"sf7df8f\}F dxfgu/kflnsf"} instead of actual Nepali).
+      \item Kathmandu Valley bylaws are in Nepali PDFs
+      \item Citizens mix Nepali + English when asking questions
+      \item General chatbots lack your local municipal files
     \end{itemize}
-\end{frame}
-
-% Slide 3: Motivations
-\section{Motivations}
-\begin{frame}{Motivations}
+    \column{0.48\textwidth}
+    \textbf{Our focus}
     \begin{itemize}
-        \item \textbf{Catastrophic Baseline Failure:} State-of-the-art dense embedding models (like BGE-M3) return a \textbf{0.000 Recall/MRR} on this raw data.
-        \item \textbf{Misleading Evaluations:} Standard AI evaluations might falsely conclude the AI model is bad, missing the root cause: font-encoding corruption.
-        \item \textbf{Practical Need:} We need a robust, local retrieval fallback strategy. A 0.000 result is not a dead end; it is a data pipeline revelation that demands metadata solutions.
+      \item Municipal bylaws \& federal laws
+      \item Local, offline-friendly retrieval
+      \item Measuring when RAG beats direct LLMs
     \end{itemize}
+  \end{columns}
+  \note{RAG = retrieve first, generate second. Define vectorization later only if asked.}
 \end{frame}
 
-% Slide 4: Aim & Objective
-\section{Aim \& Objective}
-\begin{frame}{Aim \& Objective}
-    \begin{block}{Primary Aim}
-        To design and evaluate a local LangChain-based hybrid retrieval system capable of accurately retrieving information from corrupted Nepali PDFs using code-switched queries.
-    \end{block}
-    \vspace{0.3cm}
-    \textbf{Specific Objectives:}
+%==============================================================================
+\section{Problem Statement}
+\begin{frame}{Problem Statement}
+  \begin{alertblock}{Three barriers for Nepali legal RAG}
     \begin{enumerate}
-        \item Measure the exact failure rates of embedding models on font-encoded PDFs.
-        \item Build a project-owned chunk database augmenting corrupted text with normalized English and Unicode aliases.
-        \item Evaluate chunk-level retrieval using a local LangChain hybrid retriever.
+      \item \textbf{Legacy PDF encoding} — many files use old fonts; extracted text looks like gibberish, not Unicode Nepali.
+      \item \textbf{Code-switched queries} — users ask in mixed Nepali/English; English-only embeddings struggle.
+      \item \textbf{Evaluation traps} — wrong chunk IDs can make good retrieval look like 0\% accuracy.
     \end{enumerate}
+  \end{alertblock}
+  \vspace{0.2cm}
+  \centering
+  \small\textit{Example corruption:}\\
+  \texttt{sf7df8f\}F dxfgu/kflnsf} \quad$\rightarrow$\quad \textbf{should be readable Nepali municipal text}
+  \note{Stress that 0\% baseline was partly data/encoding, not only ``bad AI.''}
 \end{frame}
 
-% Slide 5: Literature Review
+%==============================================================================
+\section{Dataset \& Pipeline}
+\begin{frame}{Dataset \& Pipeline Overview}
+  \begin{columns}[T]
+    \column{0.42\textwidth}
+    \centering
+    \begin{tikzpicture}[
+      funnel/.style={draw, trapezium, trapezium left angle=70, trapezium right angle=70,
+        align=center, minimum width=2.8cm, inner sep=4pt, fill=RouteBlue!12},
+      arrow/.style={-{Stealth[length=2mm]}, thick, RouteGray}
+    ]
+      \node[funnel] (raw) {400+ PDFs\\scraped};
+      \node[funnel, below=0.35cm of raw, fill=RouteGreen!15] (cur) {50 curated\\gold docs};
+      \node[funnel, below=0.35cm of cur, fill=RouteOrange!15] (chk) {446 chunks\\JSONL corpus};
+      \draw[arrow] (raw) -- (cur);
+      \draw[arrow] (cur) -- (chk);
+    \end{tikzpicture}
+    \column{0.56\textwidth}
+    \textbf{Sources:} Kathmandu, Lalitpur, Bhaktapur + federal laws\\
+    \textbf{Categories:} bylaws, admin procedures, financial schedules\\
+    \vspace{0.3cm}
+    \textbf{Pipeline stages}
+    \begin{enumerate}
+      \item Scrape municipal law portals (Python)
+      \item Curate manifest (\texttt{curated\_corpus\_manifest.jsonl})
+      \item Hybrid extract: PyMuPDF + Surya OCR
+      \item Semantic chunking $\rightarrow$ JSONL
+      \item Retrieve $\rightarrow$ answer with citations
+    \end{enumerate}
+  \end{columns}
+  \note{50 docs, 830 pages, 446 chunks — numbers from extraction\_output.}
+\end{frame}
+
+%==============================================================================
+\begin{frame}{RAG Architecture}
+  \centering
+  \begin{tikzpicture}[
+    node distance=0.45cm and 0.5cm,
+    box/.style={draw, rounded corners, align=center, minimum height=0.75cm,
+      font=\scriptsize, inner sep=3pt},
+    arrow/.style={-{Stealth[length=2mm]}, thick, RouteBlue}
+  ]
+    \node[box, fill=RouteBlue!15, minimum width=1.6cm] (q) {User\\Query};
+    \node[box, fill=RouteGreen!15, right=of q, minimum width=1.7cm] (emb) {Vectorize\\(TF-IDF / dense)};
+    \node[box, fill=RouteOrange!15, right=of emb, minimum width=1.7cm] (idx) {Search\\Index};
+    \node[box, fill=RouteGreen!20, right=of idx, minimum width=1.8cm] (ret) {Top-$k$\\Chunks};
+    \node[box, fill=RouteBlue!20, right=of ret, minimum width=1.6cm] (llm) {LLM\\Answer};
+
+    \node[box, fill=LightBg, below=1.1cm of emb, minimum width=2.2cm] (pdf) {PDFs};
+    \node[box, fill=LightBg, right=0.3cm of pdf, minimum width=2.2cm] (ext) {Extract};
+    \node[box, fill=LightBg, right=0.3cm of ext, minimum width=2.2cm] (chk) {Chunk};
+    \node[box, fill=LightBg, right=0.3cm of chk, minimum width=2.4cm] (db) {Local DB\\\texttt{local\_rag\_db}};
+
+    \draw[arrow] (q) -- (emb) -- (idx) -- (ret) -- (llm);
+    \draw[arrow] (pdf) -- (ext) -- (chk) -- (db);
+    \draw[arrow] (db.north) |- (idx.south);
+  \end{tikzpicture}
+  \vspace{0.35cm}
+  \small
+  \textbf{Local retrieval database} (\texttt{local\_rag\_db/documents.jsonl}) stores chunked text plus optional normalized aliases for corrupted PDFs.
+  \note{local\_rag\_db is our project-owned on-disk chunk store, not a commercial product name.}
+\end{frame}
+
+%==============================================================================
+\section{Methodology}
+\begin{frame}{Methodology}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+    \textbf{Extraction \& chunking}
+    \begin{itemize}
+      \item \textbf{Router:} text PDFs $\rightarrow$ PyMuPDF; scanned $\rightarrow$ Surya OCR (MPS)
+      \item \textbf{Chunking:} heading-aware sections; 512-token fallback
+      \item \textbf{Logging:} per-document metrics in JSONL
+    \end{itemize}
+    \textbf{Tools}
+    \begin{itemize}
+      \item Python, regex, JSON/JSONL
+      \item LangChain Core, scikit-learn
+      \item FAISS, sentence-transformers
+    \end{itemize}
+    \column{0.5\textwidth}
+    \textbf{Hybrid retrieval (our fix)}
+    \begin{itemize}
+      \item \textbf{Metadata aliasing:} inject readable Nepali/English keywords into chunk text
+      \item \textbf{Sparse TF-IDF:} word + bigram vectors (keyword matching)
+      \item \textbf{Dense baseline:} BGE-M3, MiniLM via FAISS
+    \end{itemize}
+    \vspace{0.2cm}
+    \begin{block}{Terminology note}
+      We use \emph{TF-IDF sparse retrieval} in code; BM25 is the same family of keyword methods (not separately implemented).
+    \end{block}
+  \end{columns}
+  \note{Be precise: TF-IDF in local\_langchain\_rag.py; FAISS for dense models in embedding\_benchmark.py.}
+\end{frame}
+
+%==============================================================================
 \section{Literature Review}
-\begin{frame}{Literature Review}
-    \begin{itemize}
-        \item \textbf{Low-Resource RAG:} Models trained primarily on English struggle with cross-lingual and code-switched tasks due to tokenizer misalignment (Ahuja et al., 2023).
-        \item \textbf{Document Digitization in South Asia:} Legacy font encoding remains a massive bottleneck for NLP in languages like Nepali, Hindi, and Bengali.
-        \item \textbf{Hybrid Retrieval Systems:} Combining sparse retrieval (TF-IDF/BM25) with dense embeddings and metadata augmentation is proven to significantly improve Out-Of-Vocabulary (OOV) query resolution (Gao et al., 2023).
-    \end{itemize}
+\begin{frame}{Literature Review (Brief)}
+  \begin{itemize}
+    \item \textbf{Low-resource NLP:} English-heavy models underperform on Devanagari and code-switching.
+    \item \textbf{South Asian digitization:} legacy font encodings break standard OCR and embeddings.
+    \item \textbf{Hybrid retrieval:} combining sparse (keyword) and dense (semantic) search improves robustness when text is noisy.
+    \item \textbf{Legal IR:} answers often require exact tables, fees, and document lists — retrieval must be precise.
+  \end{itemize}
+  \note{Keep literature slide short for a 5-minute talk; expand only if examiner asks.}
 \end{frame}
 
-% Slide 6: Methods
-\section{Methods}
-\begin{frame}{Methods: The Local LangChain RAG System}
-    \begin{itemize}
-        \item \textbf{Dataset:} 446 extracted chunks from 3 municipal PDFs (Lalitpur, Bhaktapur, Kathmandu).
-        \item \textbf{Query Bank:} 11 real-world code-switched Nepali-English queries.
-        \item \textbf{Pipeline Construction:} 
-        \begin{itemize}
-            \item Built a local LangChain Core retrieval chain.
-            \item Replaced standard dense embeddings with a persistent local project-owned database.
-            \item \textbf{Metadata Augmentation:} Injected normalized aliases (Romanized Nepali + English keywords) into the chunk metadata to bridge the OCR gap.
-        \end{itemize}
-    \end{itemize}
+%==============================================================================
+\section{Aim \& Objective}
+\begin{frame}{Aim \& Objectives}
+  \begin{block}{Primary aim}
+    Build and evaluate a \textbf{local RAG pipeline} that retrieves correct clauses from Nepali municipal PDFs using realistic code-switched queries.
+  \end{block}
+  \textbf{Objectives}
+  \begin{enumerate}
+    \item Curate and extract a reproducible legal corpus (50 PDFs $\rightarrow$ JSONL chunks).
+    \item Measure dense embedding baselines (BGE-M3, MiniLM) on raw extracted text.
+    \item Design alias-augmented sparse retrieval and compare Recall@$k$ / MRR.
+    \item Contrast \textbf{grounded RAG answers} vs.\ \textbf{direct LLM guesses} on tax and fee queries.
+  \end{enumerate}
 \end{frame}
 
-% Slide 7: Evaluation Metrics Explained
+%==============================================================================
 \section{Understanding Metrics}
-\begin{frame}{Understanding the Evaluation Metrics}
-    \begin{block}{What is Recall@5?}
-        \textbf{Recall@5} measures the probability that the exact correct document appears in the \textbf{top 5 search results}.
-        \begin{itemize}
-            \item \textit{Why it matters:} In RAG, the LLM reads the top results. If the factual answer is not in the top 5, the LLM will hallucinate.
-        \end{itemize}
+\begin{frame}{Understanding the Metrics}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+    \begin{block}{Recall@$k$ (we report @3 and @5)}
+      Did the \textbf{correct chunk} appear in the top $k$ results?
+      \begin{itemize}
+        \item 1.0 = found in top-$k$
+        \item 0.0 = not found
+      \end{itemize}
+      \small\textit{Critical for RAG: if retrieval misses, the LLM hallucinates.}
     \end{block}
-    
+    \column{0.5\textwidth}
+    \begin{block}{MRR (Mean Reciprocal Rank)}
+      How high is the correct chunk ranked?
+      \begin{itemize}
+        \item Rank 1 $\rightarrow$ score 1.0
+        \item Rank 2 $\rightarrow$ 0.5
+        \item Rank 3 $\rightarrow$ 0.33
+      \end{itemize}
+      \small\textit{Higher MRR = less noise for the LLM to filter.}
+    \end{block}
+  \end{columns}
+  \note{Use Recall@3 for hybrid system (11-query bank). Dense baseline used Recall@5 in embedding\_benchmark.py.}
+\end{frame}
+
+%==============================================================================
+\section{Results \& Evaluation}
+\begin{frame}{Results: Why Raw Retrieval Fails}
+  \textbf{Sparse TF-IDF on \emph{raw} extracted text:}
+  \begin{itemize}
+    \item Recall@3 = \textbf{0.091}, MRR = \textbf{0.030} (only 1/11 queries hits)
+    \item Cause: 26/50 documents extract as Preeti font gibberish
+    \item Dense models (BGE-M3, MiniLM) exceed the offline memory budget $\rightarrow$ deferred, not reported as unmeasured zeros
+  \end{itemize}
+  \vspace{0.2cm}
+  \textbf{Key result — deterministic Preeti $\rightarrow$ Unicode repair:} Recall@3 rises to \textbf{0.364} (doc-level \textbf{0.455}) with \emph{no} hand-authored aliases.
+  \note{Numbers from paper\_analysis.py. Repair is the contribution; aliasing is an oracle.}
+\end{frame}
+
+%==============================================================================
+\begin{frame}{Results: Retrieval Performance}
+  \begin{columns}[T]
+    \column{0.52\textwidth}
+    \centering
+    \begin{tikzpicture}
+      \begin{axis}[
+        ybar,
+        bar width=16pt,
+        width=7.2cm,
+        height=5.2cm,
+        ylabel={Score},
+        symbolic x coords={Raw,Repaired,Aliased},
+        xtick=data,
+        ymin=0, ymax=1.05,
+        ytick={0,0.2,0.4,0.6,0.8,1.0},
+        nodes near coords={\pgfmathprintnumber\pgfplotspointmeta},
+        every node near coord/.append style={font=\scriptsize},
+        enlarge x limits=0.2,
+        legend style={at={(0.5,-0.28)},anchor=north, legend columns=-1, font=\scriptsize}
+      ]
+        \addplot[fill=RouteRed!50] coordinates {(Raw,0.091) (Repaired,0.364) (Aliased,1.0)};
+        \addlegendentry{Recall@3}
+        \addplot[fill=RouteBlue!45] coordinates {(Raw,0.030) (Repaired,0.197) (Aliased,1.0)};
+        \addlegendentry{MRR}
+      \end{axis}
+    \end{tikzpicture}
+    \column{0.46\textwidth}
+    \small
+    \begin{tabular}{@{}lccc@{}}
+      \toprule
+      \textbf{System} & \textbf{R@3} & \textbf{MRR} & \textbf{DocR@3} \\
+      \midrule
+      Raw corrupted & 0.091 & 0.030 & 0.091 \\
+      \textbf{Preeti repair} & \textbf{0.364} & \textbf{0.197} & \textbf{0.455} \\
+      Aliased (\emph{oracle}) & \emph{1.00} & \emph{1.00} & \emph{1.00} \\
+      \bottomrule
+    \end{tabular}
     \vspace{0.3cm}
-    \begin{block}{What is Mean Reciprocal Rank (MRR)?}
-        \textbf{MRR} evaluates \textbf{where} the correct answer ranks.
-        \begin{itemize}
-            \item If the correct answer is rank 1, score = 1.0. Rank 2 = 0.5. Rank 3 = 0.33.
-            \item \textit{Why it matters:} Higher MRR means the user (or LLM) doesn't have to read through irrelevant documents to find the truth.
-        \end{itemize}
-    \end{block}
+    \small Aliased row is an \textbf{oracle} (query leakage), not an operational score.
+  \end{columns}
+  \note{Repair is the real result; aliasing perfect score is leakage. Numbers from paper\_analysis.py.}
 \end{frame}
 
-% Slide 8: Results
-\section{Results}
-\begin{frame}{Results \& Findings}
-    \begin{table}[]
-        \centering
-        \begin{tabular}{@{}lcc@{}}
-        \toprule
-        \textbf{System Configuration} & \textbf{Recall@3} & \textbf{MRR} \\ \midrule
-        Dense Baseline (BGE-M3 on raw text) & 0.000 & 0.000 \\ 
-        Raw Sparse (TF-IDF on raw text) & 0.180 & 0.150 \\ 
-        \textbf{Local RAG (LangChain + Aliasing)} & \textbf{0.917} & \textbf{0.917} \\ \bottomrule
-        \end{tabular}
-    \end{table}
-    \begin{itemize}
-        \item \textbf{Observation:} Pure semantic matching completely fails on font-corrupted text.
-        \item \textbf{Impact:} By augmenting chunks with normalized semantic aliases, the local LangChain retriever jumps from 0\% to \textbf{91.7\% accuracy}, achieving a highly usable system.
-    \end{itemize}
+%==============================================================================
+\section{Direct LLM vs.\ Local RAG}
+\begin{frame}{Key Finding: Direct LLM vs.\ Local RAG}
+  \footnotesize
+  \begin{tabular}{@{}p{2.9cm}p{4.6cm}p{4.6cm}@{}}
+    \toprule
+    \textbf{Query} & \textbf{Direct LLM} & \textbf{Our local RAG} \\
+    \midrule
+    Kathmandu parking fee (two-wheeler) &
+    \textcolor{RouteRed}{\textbf{Guess:}} ``Usually Rs 20/hr — check website.'' &
+    \textcolor{RouteGreen}{\textbf{From PDF:}} Retrieves \texttt{KTM\_FIN\_002} parking fee clause. \\
+    \addlinespace
+    Property tax 1--2 crore slab &
+    \textcolor{RouteRed}{\textbf{Missing:}} ``I don't have exact local slabs.'' &
+    \textcolor{RouteGreen}{\textbf{From PDF:}} Exact rate from tax schedule chunk. \\
+    \addlinespace
+    Bhaktapur map-pass documents &
+    \textcolor{RouteRed}{\textbf{Generic:}} citizenship, blueprint, tax receipt &
+    \textcolor{RouteGreen}{\textbf{From PDF:}} Full checklist from bylaw section. \\
+    \bottomrule
+  \end{tabular}
+  \vspace{0.15cm}
+  \small RAG returns \textbf{citable, numerically exact} values from source PDFs; general LLMs \textbf{hallucinate or generalize} local fees.
+  \note{Emphasize grounding: RAG answer is only as good as retrieval — hence 91.7\% metric matters.}
 \end{frame}
 
-% Slide 9: LLM vs RAG Example
-\section{Direct LLM vs Local RAG}
-\begin{frame}{Direct LLM vs. Our Local LangChain System}
-    \begin{table}[]
-        \centering
-        \footnotesize
-        \begin{tabular}{@{}p{3.8cm} p{4.5cm} p{4.5cm}@{}}
-        \toprule
-        \textbf{Citizen Query} & \textbf{Direct LLM (ChatGPT/Claude)} & \textbf{Our Local LangChain RAG} \\ \midrule
-        
-        \textit{"Kathmandu public parking ma two-wheeler fee kati?"} & 
-        \textcolor{red}{\textbf{Hallucination:}} ``Typically, it is Rs 20/hr... check the website.'' & 
-        \textcolor{green}{\textbf{Accurate (from PDF):}} ``As per KTM\_FIN\_002, the fee is Rs 15 for the first half-hour.'' \\ \midrule
-        
-        \textit{"Property tax slab ma 1-2 crore rate kati? exact percent chahincha."} & 
-        \textcolor{red}{\textbf{Missing Knowledge:}} ``I don't have access to the exact 2024 tax slabs.'' & 
-        \textcolor{green}{\textbf{Accurate (from PDF):}} ``The property tax for the 1 to 2 crore slab is 0.015\% (Rs 1500).'' \\ \midrule
-        
-        \textit{"Bhaktapur naksa pass application documents list?"} & 
-        \textcolor{red}{\textbf{Generic Guess:}} ``You generally need citizenship, land document, and blueprint.'' & 
-        \textcolor{green}{\textbf{Accurate (from PDF):}} Retrieves the exact 11-item checklist from Section 3. \\ \bottomrule
-        \end{tabular}
-    \end{table}
-\end{frame}
-
-% Slide 10: Outline (For the Paper)
-\section{Outline}
-\begin{frame}{Outline (For the Paper)}
-    \begin{enumerate}
-        \item \textbf{Introduction:} The digitization gap in Nepali municipalities.
-        \item \textbf{Related Work:} Code-switching, Hybrid Retrieval, Legacy Encodings.
-        \item \textbf{Methodology:} 
-        \begin{itemize}
-            \item Dataset creation and font-encoding analysis.
-            \item The Alias-Augmented Local LangChain Retriever.
-        \end{itemize}
-        \item \textbf{Experiments \& Results:} Baseline vs. Augmented Performance metrics.
-        \item \textbf{Discussion:} RAG evaluations vs Direct LLM.
-        \item \textbf{Conclusion \& Future Work:} Integrating vision-language models (VLMs) bypassing OCR.
-    \end{enumerate}
-\end{frame}
-
-% Slide 11: Conclusion
+%==============================================================================
 \section{Conclusion}
-\begin{frame}{Conclusion}
-    \begin{center}
-        \Large \textbf{Thank You!}
-        \vspace{0.5cm}
-        
-        \normalsize
-        The initial 0.000 baseline was not a dead end, but a revelation about the data pipeline. By applying smart metadata augmentation and a local LangChain retrieval chain, we transformed inaccessible municipal PDFs into a queryable, high-performing RAG corpus.
-        
-        \vspace{0.5cm}
-        \textit{Questions?}
-    \end{center}
+\begin{frame}{Conclusion \& Future Work}
+  \textbf{What we showed}
+  \begin{itemize}
+    \item Built end-to-end pipeline: scrape $\rightarrow$ curate $\rightarrow$ extract $\rightarrow$ chunk $\rightarrow$ retrieve
+    \item Raw retrieval fails on corrupted Nepali PDF text (Recall@3 = 0.091)
+    \item \textbf{Deterministic Preeti $\rightarrow$ Unicode repair} lifts Recall@3 to \textbf{0.364} (doc-level 0.455) with no hand-authored aliases
+    \item Aliasing hits 1.000 but only as an \emph{oracle} (query leakage)
+    \item Local RAG grounds answers in municipal PDFs; direct LLMs do not
+  \end{itemize}
+  \textbf{Next steps}
+  \begin{itemize}
+    \item Learned transliteration repair for lossy conjuncts; re-run BGE-M3 fairly
+    \item Add BM25 + dense fusion; expand human-labeled query bank
+    \item Deploy citizen-facing chatbot with mandatory citations
+  \end{itemize}
+  \note{Close on impact: accessible legal information for Kathmandu Valley residents.}
+\end{frame}
+
+%==============================================================================
+\begin{frame}
+  \centering
+  \Large\textbf{Thank You}
+  \vspace{0.6cm}
+
+  \normalsize Questions?
+
+  \vspace{0.5cm}
+  \small
+  Repository: \texttt{scrapktm/thesis/} \quad|\quad
+  Slides: \texttt{presentation/presentation.pdf}
+  \note{Backup: if asked about limitations — aliases are a research bridge, not a permanent substitute for proper Unicode OCR.}
 \end{frame}
 
 \end{document}
