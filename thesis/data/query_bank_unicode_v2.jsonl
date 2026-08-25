@@ -1,0 +1,16 @@
+{"query_id":"q001","query":"व्यवसाय दर्ता भएका व्यवसायीले वार्षिक रूपमा व्यवसाय कर तिरेपछि के गर्नुपर्छ?","query_type":"baseline_nepali","doc_id":"LMC_MUN_004","chunk_id":"LMC_MUN_004_sec2_chunk_7"}
+{"query_id":"q002","query":"वार्षिक business tax payment पछि व्यवसायको renewal कसरी हुन्छ?","query_type":"code_switched_mixed","doc_id":"LMC_MUN_004","chunk_id":"LMC_MUN_004_sec2_chunk_7"}
+{"query_id":"q003","query":"barshik business tax tirera byabasaya renewal kasari garne ho?","query_type":"code_switched_roman","doc_id":"LMC_MUN_004","chunk_id":"LMC_MUN_004_sec2_chunk_7"}
+{"query_id":"q004","query":"व्यवसाय दर्ताका लागि नगरपालिका कार्यालयमा कस्तो निवेदन पेश गर्नुपर्छ?","query_type":"baseline_nepali","doc_id":"LMC_MUN_004","chunk_id":"LMC_MUN_004_sec2_chunk_4"}
+{"query_id":"q005","query":"व्यवसाय registration का लागि कस्तो application फारम बुझाउनुपर्छ?","query_type":"code_switched_mixed","doc_id":"LMC_MUN_004","chunk_id":"LMC_MUN_004_sec2_chunk_4"}
+{"query_id":"q006","query":"byabasaya registration ko lagi kasto application form bujhaunu parcha?","query_type":"code_switched_roman","doc_id":"LMC_MUN_004","chunk_id":"LMC_MUN_004_sec2_chunk_4"}
+{"query_id":"q007","query":"नक्सा पास निवेदन दिँदा के–के कागजात संलग्न गर्नुपर्छ?","query_type":"baseline_nepali","doc_id":"BKT_MUN_001","chunk_id":"BKT_MUN_001_sec3_chunk_1"}
+{"query_id":"q008","query":"नक्सा pass application सँग कुन documents बुझाउनुपर्छ?","query_type":"code_switched_mixed","doc_id":"BKT_MUN_001","chunk_id":"BKT_MUN_001_sec3_chunk_1"}
+{"query_id":"q009","query":"naksa pass application sanga kun documents bujhaunu parcha?","query_type":"code_switched_roman","doc_id":"BKT_MUN_001","chunk_id":"BKT_MUN_001_sec3_chunk_1"}
+{"query_id":"q010","query":"नक्सा पास प्रमाणपत्रका लागि नक्सा पास शुल्क कति गुणा तिर्नुपर्छ?","query_type":"baseline_nepali","doc_id":"BKT_MUN_001","chunk_id":"BKT_MUN_001_sec3_chunk_5"}
+{"query_id":"q011","query":"नक्सा pass certificate निकाल्दा fee कति गुणा लाग्छ?","query_type":"code_switched_mixed","doc_id":"BKT_MUN_001","chunk_id":"BKT_MUN_001_sec3_chunk_5"}
+{"query_id":"q012","query":"naksa pass certificate ko lagi fee kati guna tirnu parcha?","query_type":"code_switched_roman","doc_id":"BKT_MUN_001","chunk_id":"BKT_MUN_001_sec3_chunk_5"}
+{"query_id":"q013","query":"काठमाडौं महानगरमा घर वा जग्गामा सम्पत्ति कर कसरी लगाइन्छ?","query_type":"baseline_nepali","doc_id":"KTM_FIN_002","chunk_id":"KTM_FIN_002_sec2_chunk_1"}
+{"query_id":"q014","query":"घर/जग्गाको property tax काठमाडौं महानगरमा कसरी लगाइन्छ?","query_type":"code_switched_mixed","doc_id":"KTM_FIN_002","chunk_id":"KTM_FIN_002_sec2_chunk_1"}
+{"query_id":"q015","query":"Kathmandu ma ghar/jagga ko property tax kasari lagchha?","query_type":"code_switched_roman","doc_id":"KTM_FIN_002","chunk_id":"KTM_FIN_002_sec2_chunk_1"}
+f
