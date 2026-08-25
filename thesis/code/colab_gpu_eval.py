@@ -24,7 +24,7 @@ Then run this file:  !python thesis/code/colab_gpu_eval.py --n-gen 40
 """
 
 from __future__ import annotations
-import argparse, json, glob, re, sys, os
+import argparse, json, re, sys, os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -68,7 +68,7 @@ def load_chunks(repair: bool):
 # PART A — DENSE RETRIEVAL
 # ============================================================================
 def dense_eval(model_name, repair, queries, k_list=(3, 5)):
-    import numpy as np, faiss
+    import faiss
     from sentence_transformers import SentenceTransformer
     chunks = load_chunks(repair)
     texts = [c["text"] for c in chunks]
@@ -113,14 +113,14 @@ def run_dense(queries):
 # PART B — RAG GENERATION EVAL (RAGAS + GPT-4 judge)
 # ============================================================================
 def run_generation(queries, n_gen, gen_model="gpt-4o", judge_model="gpt-4o"):
-    import numpy as np, faiss
+    import faiss
     from sentence_transformers import SentenceTransformer
     from openai import OpenAI
     client = OpenAI()
 
     chunks = load_chunks(repair=True)          # generation runs on repaired corpus
     by_id = {c["chunk_id"]: c["text"] for c in chunks}
-    texts = [c["text"] for c in chunks]; ids = [c["chunk_id"] for c in chunks]
+    texts = [c["text"] for c in chunks]
     retr = SentenceTransformer("BAAI/bge-m3", device="cuda")
     emb = retr.encode(texts, batch_size=64, convert_to_numpy=True,
                       normalize_embeddings=True, show_progress_bar=True).astype("float32")
