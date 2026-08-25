@@ -14,10 +14,26 @@
 \usetikzlibrary{arrows.meta,positioning,shapes.geometric}
 \usepackage{hyperref}
 
-% Machine-generated numbers (produced by thesis/code/paper_analysis.py).
-% Every quantitative claim below is drawn from these macros; nothing is
-% hand-transcribed. Regenerate with: ./.venv/bin/python thesis/code/paper_analysis.py
-\input{generated/corpus_stats.tex}
+% Quantitative constants (self-contained; originally produced by paper_analysis.py).
+\newcommand{\corpusDocs}{50}
+\newcommand{\corpusChunks}{446}
+\newcommand{\corpusCorruptDocs}{26}
+\newcommand{\corpusCleanDocs}{18}
+\newcommand{\corpusSummaryDocs}{10}
+\newcommand{\corpusSummaryPages}{830}
+\newcommand{\chunkLenMedian}{1591}
+\newcommand{\chunkLenMax}{163520}
+\newcommand{\chunkLenMin}{3}
+\newcommand{\rawRecall}{0.091}
+\newcommand{\rawMRR}{0.030}
+\newcommand{\rawDocRecall}{0.091}
+\newcommand{\repRecall}{0.364}
+\newcommand{\repMRR}{0.197}
+\newcommand{\repDocRecall}{0.455}
+\newcommand{\aliRecall}{1.000}
+\newcommand{\aliMRR}{1.000}
+\newcommand{\aliDocRecall}{1.000}
+\newcommand{\repairValidity}{45.8}
 
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
@@ -112,7 +128,17 @@ From several hundred scraped PDFs we curate \textbf{\corpusDocs{} documents} spa
 \caption{Devanagari character ratio: the queried documents are corrupted}
 \label{tab:corruption}
 \centering
-\input{generated/corruption_table.tex}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Document} & \textbf{Devanagari \%} & \textbf{Status} \\
+\midrule
+\texttt{LMC\_MUN\_004} & 0.4\% & corrupted \\
+\texttt{BKT\_MUN\_001} & 0.0\% & corrupted \\
+\texttt{KTM\_FIN\_002} & 0.3\% & corrupted \\
+\texttt{KTM\_NAT\_001} & 97.7\% & clean \\
+\texttt{KTM\_NAT\_004} & 98.2\% & clean \\
+\bottomrule
+\end{tabular}
 \end{table}
 
 \textbf{Extraction-yield audit.} Chunk sizes are strongly non-uniform (Table~\ref{tab:chunksize}): the median chunk is \chunkLenMedian{} characters but the maximum is \chunkLenMax{}, indicating that heading detection failed on some documents and left them un-split, while a minimum of \chunkLenMin{} characters reveals near-empty fragments. We report this rather than silently averaging over it.
@@ -121,7 +147,16 @@ From several hundred scraped PDFs we curate \textbf{\corpusDocs{} documents} spa
 \caption{Chunk-size distribution (characters) over all \corpusChunks{} chunks}
 \label{tab:chunksize}
 \centering
-\input{generated/chunksize_table.tex}
+\begin{tabular}{lr}
+\toprule
+\textbf{Statistic} & \textbf{Characters} \\
+\midrule
+Minimum & 3 \\
+Median & 1591 \\
+Mean & 5178 \\
+Maximum & 163520 \\
+\bottomrule
+\end{tabular}
 \end{table}
 
 \subsection{Document Ingestion and Routing}
@@ -195,7 +230,15 @@ Table~\ref{tab:retrieval} reports the three configurations. On raw corrupted tex
 \caption{Retrieval accuracy on the 11-query code-switched bank ($k{=}3$). Aliased row is an oracle upper bound (leakage), shown in italics.}
 \label{tab:retrieval}
 \centering
-\input{generated/retrieval_table.tex}
+\begin{tabular}{p{4.6cm}ccc}
+\toprule
+\textbf{Configuration} & \textbf{R@3} & \textbf{MRR} & \textbf{DocR@3} \\
+\midrule
+Sparse TF-IDF, raw corrupted text (no aliases) & 0.091 & 0.030 & 0.091 \\
+\textbf{Sparse TF-IDF, deterministic Preeti repair (no aliases)} & \textbf{0.364} & \textbf{0.197} & \textbf{0.455} \\
+Sparse TF-IDF + metadata aliasing (oracle) & \textit{1.000} & \textit{1.000} & \textit{1.000} \\
+\bottomrule
+\end{tabular}
 \end{table}
 
 Fig.~\ref{fig:recall} plots Recall@$k$ for $k{=}1\ldots10$ under a common range, removing the $k$-mismatch confound of reporting configurations at different cutoffs. Fig.~\ref{fig:alias} sweeps the alias injection weight: retrieval saturates by weight~10--20, which both explains the previously arbitrary choice of~20 and quantifies how quickly leakage dominates once aliases are keyed to answers.
@@ -207,9 +250,9 @@ Fig.~\ref{fig:recall} plots Recall@$k$ for $k{=}1\ldots10$ under a common range,
   xmin=1, xmax=10, ymin=0, ymax=1.05, legend pos=south east,
   legend style={font=\scriptsize}, tick label style={font=\scriptsize},
   label style={font=\scriptsize}, grid=both, grid style={gray!20}]
-\addplot+[mark=*] table[x=k,y=raw]{generated/recall_curve.dat};
-\addplot+[mark=square*] table[x=k,y=repaired]{generated/recall_curve.dat};
-\addplot+[mark=triangle*] table[x=k,y=aliased]{generated/recall_curve.dat};
+\addplot+[mark=*] coordinates {(1,0.0000)(2,0.0000)(3,0.0909)(4,0.0909)(5,0.0909)(6,0.0909)(7,0.0909)(8,0.0909)(9,0.0909)(10,0.0909)};
+\addplot+[mark=square*] coordinates {(1,0.0909)(2,0.1818)(3,0.3636)(4,0.3636)(5,0.4545)(6,0.4545)(7,0.6364)(8,0.6364)(9,0.6364)(10,0.6364)};
+\addplot+[mark=triangle*] coordinates {(1,1)(2,1)(3,1)(4,1)(5,1)(6,1)(7,1)(8,1)(9,1)(10,1)};
 \legend{raw, repaired, aliased (oracle)}
 \end{axis}
 \end{tikzpicture}
@@ -224,8 +267,8 @@ Fig.~\ref{fig:recall} plots Recall@$k$ for $k{=}1\ldots10$ under a common range,
   xmin=0, xmax=50, ymin=0, ymax=1.05, legend pos=south east,
   legend style={font=\scriptsize}, tick label style={font=\scriptsize},
   label style={font=\scriptsize}, grid=both, grid style={gray!20}]
-\addplot+[mark=*] table[x=weight,y=recall]{generated/aliasweight.dat};
-\addplot+[mark=square*] table[x=weight,y=mrr]{generated/aliasweight.dat};
+\addplot+[mark=*] coordinates {(0,0.0909)(1,0.4545)(5,0.9091)(10,1.0000)(20,1.0000)(50,1.0000)};
+\addplot+[mark=square*] coordinates {(0,0.0303)(1,0.3333)(5,0.8030)(10,0.9091)(20,1.0000)(50,1.0000)};
 \legend{Recall@3, MRR@3}
 \end{axis}
 \end{tikzpicture}
