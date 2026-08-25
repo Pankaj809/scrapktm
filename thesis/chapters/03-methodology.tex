@@ -2,7 +2,11 @@
 \label{ch:methodology}
 
 \section{System Overview}
-The \texttt{scrapktm} pipeline comprises five stages: web scraping, corpus curation, hybrid extraction, semantic chunking, and embedding-based retrieval evaluation. \Cref{fig:pipeline} summarizes the architecture.
+The \texttt{scrapktm} pipeline comprises five stages: web scraping, corpus curation, hybrid extraction, deterministic encoding repair, semantic chunking, and embedding-based retrieval evaluation. \Cref{fig:pipeline} summarizes the architecture.
+
+\section{Deterministic Preeti-to-Unicode Repair}
+\label{sec:repair-impl}
+A large share of the corpus is stored in the legacy Preeti font, which maps Devanagari to Latin-1 code points for \emph{rendering}. When such a text-layer PDF ships without a ToUnicode CMap, extraction yields Latin gibberish (e.g., \texttt{sf7df8f\}“ dxfgu/kflnsf}) whose byte sequence is nonetheless a deterministic function of the original text. We exploit this determinism in \texttt{thesis/code/preeti\_to\_unicode.py}, which applies (i)~a longest-match glyph-substitution table, including half-consonant uppercase forms (e.g.\ \texttt{J}~$\rightarrow$~\emph{v-halant}) and multi-glyph vowel compounds; (ii)~\emph{short-i matra reordering}, since Preeti types the \texttt{i}-vowel sign before its consonant whereas Unicode places it after; and (iii)~\emph{reph reordering}, since the \texttt{r}-cap glyph is typed after the consonant cluster it modifies but renders before it. Repair is gated on the per-chunk Devanagari ratio ($<0.10$) so that already-Unicode chunks pass through untouched. Validated against an independent clean-document vocabulary, the module reconstructs 45.8\% of tokens exactly---enough to lift downstream retrieval fourfold (\Cref{ch:results})---with residual errors concentrated on rare conjuncts.
 
 \begin{figure}[H]
   \centering
