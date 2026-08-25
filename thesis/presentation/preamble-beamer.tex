@@ -1,0 +1,26 @@
+% Shared Beamer preamble for thesis defense slides
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath,amssymb}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,backgrounds,calc}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+% Brand colors
+\definecolor{RouteBlue}{RGB}{41,98,255}
+\definecolor{RouteGreen}{RGB}{46,125,50}
+\definecolor{RouteOrange}{RGB}{245,124,0}
+\definecolor{RouteRed}{RGB}{198,40,40}
+\definecolor{RouteGray}{RGB}{97,97,97}
+\definecolor{LightBg}{RGB}{245,247,250}
+
+\setbeamercolor{block title}{bg=RouteBlue!18, fg=black}
+\setbeamercolor{block body}{bg=LightBg}
+
+% Speaker notes (uncomment in presentation.tex to export notes PDF)
+% \usepackage{pgfpages}
+% \setbeameroption{show notes on second screen=right}
+
+\newcommand{\ragterm}[1]{\textbf{#1}}

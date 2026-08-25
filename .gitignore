@@ -1,6 +1,29 @@
+# Python
 .venv/
 __pycache__/
 *.pyc
+
+# OS / editor
 .DS_Store
+.vscode/
+.kilo/
+
+# Raw scrape data (large, regenerable)
 kathmandu_laws_scrape_*/
+
+# LaTeX build artifacts
+*.aux
 *.log
+*.out
+*.toc
+*.nav
+*.snm
+*.bbl
+*.blg
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.bak
+*.bak[0-9]*
