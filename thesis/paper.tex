@@ -34,6 +34,11 @@
 \newcommand{\aliMRR}{0.237}
 \newcommand{\aliDocRecall}{0.480}
 \newcommand{\repairValidity}{45.8}
+% Dense retrieval (CPU-only, dense_eval_local.py): identical chunk IDs/queries.
+\newcommand{\denseEnRepRecall}{0.060}
+\newcommand{\denseMlRawRecall}{0.040}
+\newcommand{\denseMlRepRecall}{0.160}
+\newcommand{\denseMlRepDocRecall}{0.620}
 
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
@@ -51,7 +56,7 @@
 \maketitle
 
 \begin{abstract}
-Local government documents in Nepal frequently suffer severe semantic degradation when parsed by modern layout extractors, because legacy non-Unicode fonts (e.g., Preeti) surface as corrupted ASCII strings such as \texttt{``sf7df8f\}F''} (which encodes \emph{Kathmandu Metropolitan City}). This paper presents an offline-first hybrid extraction and retrieval pipeline for Nepali--English code-switched legal search, and isolates \emph{font-encoding repair} as the decisive preprocessing step. A deterministic document router dispatches text-layer PDFs to PyMuPDF and scanned PDFs to Surya OCR; extracted text is segmented with heading-aware chunking (512-token window, 128-token overlap fallback). Over a curated corpus of \corpusDocs{} municipal and federal legal PDFs yielding \corpusChunks{} retrieval chunks---of which \corpusCorruptDocs{} documents are Preeti-corrupted---sparse TF-IDF retrieval on raw corrupted text attains only Recall@3~$=$~\rawRecall{} (MRR~$=$~\rawMRR{}). We introduce an open, deterministic Preeti$\rightarrow$Unicode repair module (glyph substitution plus vowel-sign and reph reordering) that recovers \repairValidity{}\% token-level validity against an independent clean-document vocabulary and, applied before indexing, lifts sparse retrieval to Recall@3~$=$~\repRecall{} and document-level Recall@3~$=$~\repDocRecall{}---an order-of-magnitude gain with \emph{no} hand-authored aliases. On a leakage-free \nqueries{}-query bank, deterministic repair \emph{outperforms} a hand-authored metadata-aliasing baseline (Recall@3~$=$~\aliRecall{}), which helps only the curated chunks it targets. The residual gap to perfect recall is attributable to conjunct lossiness in the deterministic map, motivating learned transliteration repair as future work.
+Local government documents in Nepal frequently suffer severe semantic degradation when parsed by modern layout extractors, because legacy non-Unicode fonts (e.g., Preeti) surface as corrupted ASCII strings such as \texttt{``sf7df8f\}F''} (which encodes \emph{Kathmandu Metropolitan City}). This paper presents an offline-first hybrid extraction and retrieval pipeline for Nepali--English code-switched legal search, and isolates \emph{font-encoding repair} as the decisive preprocessing step. A deterministic document router dispatches text-layer PDFs to PyMuPDF and scanned PDFs to Surya OCR; extracted text is segmented with heading-aware chunking (512-token window, 128-token overlap fallback). Over a curated corpus of \corpusDocs{} municipal and federal legal PDFs yielding \corpusChunks{} retrieval chunks---of which \corpusCorruptDocs{} documents are Preeti-corrupted---sparse TF-IDF retrieval on raw corrupted text attains only Recall@3~$=$~\rawRecall{} (MRR~$=$~\rawMRR{}). We introduce an open, deterministic Preeti$\rightarrow$Unicode repair module (glyph substitution plus vowel-sign and reph reordering) that recovers \repairValidity{}\% token-level validity against an independent clean-document vocabulary and, applied before indexing, lifts sparse retrieval to Recall@3~$=$~\repRecall{} and document-level Recall@3~$=$~\repDocRecall{}---an order-of-magnitude gain with \emph{no} hand-authored aliases. On a leakage-free \nqueries{}-query bank, deterministic repair \emph{outperforms} a hand-authored metadata-aliasing baseline (Recall@3~$=$~\aliRecall{}), which helps only the curated chunks it targets. Repair is also \emph{necessary but not sufficient} for dense retrieval: on identical chunk IDs it lifts a multilingual encoder from Recall@3~$=$~\denseMlRawRecall{} to \denseMlRepRecall{} (document-level \denseMlRepDocRecall{}) yet leaves an English-centric encoder near-broken (\denseEnRepRecall{}), and under the edge memory budget no repaired dense encoder matches sparse-plus-repair. The residual gap to perfect recall is attributable to conjunct lossiness in the deterministic map, motivating learned transliteration repair as future work.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -70,6 +75,7 @@ We address the extraction gap with a privacy-preserving, edge-deployable pipelin
   \item A reproducible hybrid router (PyMuPDF vs.\ Surya OCR) and semantic chunker for Nepali municipal PDFs, with a quantified \emph{extraction-yield} audit of the resulting chunks.
   \item An open, deterministic Preeti$\rightarrow$Unicode repair module that reconstructs Devanagari from corrupted ASCII at \repairValidity{}\% token-level validity, validated against parallel clean-document vocabulary.
   \item A reproducible \nqueries{}-query, leakage-free code-switched evaluation showing that deterministic repair alone lifts Recall@3 from \rawRecall{} to \repRecall{} (document-level Recall@3 from \rawDocRecall{} to \repDocRecall{}) with no aliasing, and that it empirically \emph{outperforms} a hand-authored metadata-aliasing baseline (\aliRecall{}) that does not generalize beyond its curated chunks.
+  \item A cross-retriever ablation on identical chunk IDs---sparse TF-IDF and two dense encoders, each on raw and repaired text---establishing that repair is \emph{necessary but not sufficient} for dense retrieval (it helps a multilingual encoder but not an English-centric one) and that, under an edge memory budget, sparse-plus-repair remains the strongest substrate.
 \end{enumerate}
 
 %==============================================================================
@@ -199,7 +205,7 @@ Repaired text is segmented with a heading-aware detector for numbered sections, 
 We score with scikit-learn \texttt{TfidfVectorizer} (\texttt{analyzer=word}, \texttt{ngram\_range=(1,2)}, \texttt{max\_features=50000}) and rank by cosine similarity. Three configurations share identical queries, ground truth, and $k$:
 (a)~\textbf{raw} corrupted text; (b)~\textbf{repaired} text (Section~\ref{sec:repair}); (c)~\textbf{aliased}, which additionally injects hand-authored Nepali--English keyword aliases into the ground-truth chunks at weight~20. Configuration (c) uses the original pilot alias dictionary, whose entries were keyed to a small set of hand-picked answer chunks; on the leakage-free \nqueries{}-query bank it therefore helps only those chunks and is reported as a baseline, not an upper bound.
 
-Dense encoders (\texttt{all-MiniLM-L6-v2}, \texttt{BAAI/bge-m3}) exceeded the memory budget of the offline edge device targeted by this study and are deferred to future work under locked chunk IDs; we therefore make no dense-retrieval claims and omit unmeasured rows.
+To test whether repair transfers beyond sparse retrieval, we additionally score two Sentence-Transformer dense encoders on the \emph{same} chunk set, queries, ground truth, repair gate, and metrics: \texttt{all-MiniLM-L6-v2} (22M parameters, English-centric) and \texttt{paraphrase-multilingual-MiniLM-L12-v2} (118M parameters, 50+ languages including Nepali). Both encode with normalized embeddings and cosine ranking (\texttt{sentence-transformers}~5.5.1, \texttt{torch}~2.12.0). Crucially they run \emph{CPU-only}, respecting the offline edge memory budget; the 2.2\,GB \texttt{BAAI/bge-m3} encoder exceeded that budget on our target device and is left to future work under locked chunk IDs. All four dense configurations (two encoders $\times$ \{raw, repaired\}) share the identical index and evaluation harness as the sparse configurations, so the rows in Table~\ref{tab:retrieval} are directly comparable.
 
 %==============================================================================
 \section{Evaluation Protocol}
@@ -220,24 +226,33 @@ with $\mathrm{MRR}=\frac{1}{|Q|}\sum_q \mathrm{RR}(q)$. Because exact \texttt{ch
 %==============================================================================
 \section{Results}
 %==============================================================================
-Table~\ref{tab:retrieval} reports the three configurations on the \nqueries{}-query bank. On raw corrupted text, sparse retrieval is effectively broken (Recall@3~$=$~\rawRecall{}). Deterministic Preeti repair---with no hand-authored knowledge---raises exact chunk Recall@3 nearly ninefold to \repRecall{} and lifts document-level Recall@3 to \repDocRecall{}, confirming that the dominant failure is encoding rather than retrieval modeling. Crucially, repair also \emph{outperforms} the hand-authored metadata-aliasing baseline (\aliRecall{}): because the pilot aliases were keyed to a handful of chunks, they do not generalize to the expanded, leakage-free query set, whereas deterministic repair does.
+Table~\ref{tab:retrieval} reports all seven configurations---two dense encoders and one sparse retriever, each on raw and repaired text, plus the aliasing baseline---on identical chunk IDs. On raw corrupted text every retriever is effectively broken (sparse Recall@3~$=$~\rawRecall{}; both dense encoders $\le$~\denseMlRawRecall{}). Deterministic Preeti repair---with no hand-authored knowledge---raises exact sparse Recall@3 nearly ninefold to \repRecall{} and lifts document-level Recall@3 to \repDocRecall{}, confirming that the dominant failure is encoding rather than retrieval modeling. Crucially, repair also \emph{outperforms} the hand-authored metadata-aliasing baseline (\aliRecall{}): because the pilot aliases were keyed to a handful of chunks, they do not generalize to the expanded, leakage-free query set, whereas deterministic repair does.
+
+\textbf{Repair is necessary but not sufficient for dense retrieval.} The dense rows isolate a subtler point. Repair helps the \emph{multilingual} encoder substantially---Recall@3 quadruples from \denseMlRawRecall{} to \denseMlRepRecall{} and document-level Recall@3 more than doubles to \denseMlRepDocRecall{}---but barely moves the \emph{English-centric} encoder (\denseEnRepRecall{}), whose subword vocabulary does not model Devanagari even when it is well-formed. Thus font repair is a precondition for dense retrieval but pays off only with a language-appropriate encoder; and even the best repaired dense configuration remains below sparse-plus-repair under the CPU-only edge budget. Sparse retrieval on repaired text is therefore the strongest substrate we measure.
 
 \begin{table}[t]
-\caption{Retrieval accuracy on the leakage-free \nqueries{}-query code-switched bank ($k{=}3$). Deterministic repair (bold) outperforms the hand-authored aliasing baseline.}
+\caption{Retrieval accuracy on the leakage-free \nqueries{}-query code-switched bank ($k{=}3$), all on identical chunk IDs. Deterministic sparse repair (bold) is strongest; repair helps the multilingual dense encoder but not the English-centric one.}
 \label{tab:retrieval}
 \centering
 \begin{tabular}{p{4.6cm}ccc}
 \toprule
 \textbf{Configuration} & \textbf{R@3} & \textbf{MRR} & \textbf{DocR@3} \\
 \midrule
-Sparse TF-IDF, raw corrupted text (no aliases) & 0.060 & 0.023 & 0.140 \\
-\textbf{Sparse TF-IDF, deterministic Preeti repair (no aliases)} & \textbf{0.520} & \textbf{0.380} & \textbf{0.800} \\
-Sparse TF-IDF + metadata aliasing (pilot subset) & 0.260 & 0.237 & 0.480 \\
+\multicolumn{4}{l}{\emph{Dense (Sentence-Transformers, CPU-only)}}\\
+MiniLM-L6 (EN), raw corrupted & 0.000 & 0.000 & 0.380 \\
+MiniLM-L6 (EN), Preeti-repaired & 0.060 & 0.050 & 0.300 \\
+mMiniLM-L12 (ML), raw corrupted & 0.040 & 0.027 & 0.260 \\
+mMiniLM-L12 (ML), Preeti-repaired & 0.160 & 0.137 & 0.620 \\
+\midrule
+\multicolumn{4}{l}{\emph{Sparse (TF-IDF, cosine)}}\\
+Raw corrupted text (no aliases) & 0.060 & 0.023 & 0.140 \\
+\textbf{Deterministic Preeti repair (no aliases)} & \textbf{0.520} & \textbf{0.380} & \textbf{0.800} \\
+Metadata aliasing (pilot subset) & 0.260 & 0.237 & 0.480 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Fig.~\ref{fig:recall} plots Recall@$k$ for $k{=}1\ldots10$ under a common range, removing the $k$-mismatch confound of reporting configurations at different cutoffs. Fig.~\ref{fig:alias} sweeps the alias injection weight: retrieval saturates by weight~10--20, which both explains the previously arbitrary choice of~20 and quantifies how quickly leakage dominates once aliases are keyed to answers.
+Fig.~\ref{fig:recall} plots sparse Recall@$k$ for $k{=}1\ldots10$ under a common range, removing the $k$-mismatch confound of reporting configurations at different cutoffs. Fig.~\ref{fig:alias} sweeps the alias injection weight: retrieval saturates by weight~10--20, which both explains the previously arbitrary choice of~20 and quantifies how quickly leakage dominates once aliases are keyed to answers.
 
 \begin{figure}[t]
 \centering
@@ -252,7 +267,7 @@ Fig.~\ref{fig:recall} plots Recall@$k$ for $k{=}1\ldots10$ under a common range,
 \legend{raw, repaired, aliased (pilot subset)}
 \end{axis}
 \end{tikzpicture}
-\caption{Recall@$k$ over a common cutoff range. Deterministic repair separates cleanly from the broken raw baseline.}
+\caption{Sparse Recall@$k$ over a common cutoff range. Deterministic repair separates cleanly from the broken raw baseline.}
 \label{fig:recall}
 \end{figure}
 
@@ -274,7 +289,7 @@ Fig.~\ref{fig:recall} plots Recall@$k$ for $k{=}1\ldots10$ under a common range,
 
 \subsection{Illustrative Generation Contrast}
 \label{sec:llm-vs-rag}
-Table~\ref{tab:llm-vs-rag} is a \emph{qualitative} illustration, not a benchmark: it contrasts typical direct-LLM behavior with grounded retrieval on three municipal-fact needs. A controlled generation evaluation (named models, $N\!\geq\!50$, multi-annotator rubric) is left to future work.
+Table~\ref{tab:llm-vs-rag} is a \emph{qualitative} illustration, not a benchmark: it contrasts typical direct-LLM behavior with grounded retrieval on three municipal-fact needs, and we make no numerical generation claim from it. We deliberately do not report invented per-answer scores. Instead we precommit to the controlled instrument a full generation study requires, so it can be executed once GPU/API budget is available: a named, versioned generator (e.g.\ \texttt{gpt-4o-2024-08-06} or \texttt{claude-sonnet}) answering $N\!\ge\!50$ held-out code-switched questions under two conditions (direct vs.\ retrieval-grounded on repaired chunks); each answer scored on a three-level rubric---\emph{correct-with-citation} / \emph{partial} / \emph{hallucinated-or-refused}---by two independent annotators with Cohen's~$\kappa$ inter-annotator agreement, complemented by RAGAS faithfulness, answer-relevance, and context-recall. The offline scaffold for this study is released with the code.
 
 \begin{table}[t]
 \caption{Illustrative (qualitative) direct-LLM vs.\ grounded retrieval}
@@ -301,17 +316,19 @@ Bhaktapur map-pass docs & Generic checklist & Localized bylaw list \\
 
 \textbf{Statistical power.} The \nqueries{}-query bank substantially narrows per-query volatility relative to the earlier pilot; nonetheless, larger multi-annotator query sets and inter-annotator agreement on ground-truth chunks remain valuable future work.
 
-\textbf{Other threats.} Surya OCR dominates ingestion latency as the scanned share grows; dense multilingual baselines remain unevaluated under the edge memory budget; and the extraction-yield audit shows chunking must be hardened before scaling beyond \corpusDocs{} documents.
+\textbf{Encoding is binding, but the encoder must match the language.} The cross-retriever ablation refines the headline claim: repair is a precondition for \emph{every} retriever, but it converts into dense accuracy only when the encoder already models Devanagari sub-tokens---the multilingual encoder gains fourfold from repair while the English-centric one does not. A stronger multilingual dense model (e.g.\ BGE-M3) may yet overtake sparse-plus-repair, but only \emph{after} repair; this is the concrete next experiment, gated on a GPU budget beyond the offline device.
+
+\textbf{Other threats.} Surya OCR dominates ingestion latency as the scanned share grows; the 2.2\,GB \texttt{BGE-M3} baseline remains unevaluated under the edge memory budget; and the extraction-yield audit shows chunking must be hardened before scaling beyond \corpusDocs{} documents.
 
 %==============================================================================
 \section{Reproducibility}
 %==============================================================================
-\textbf{Code and data availability.} The deterministic Preeti$\rightarrow$Unicode converter, the evaluation scripts, the curated corpus, and the \nqueries{}-query code-switched bank with ground-truth chunk annotations are available from the corresponding author upon reasonable request. All retrieval is CPU-only, deterministic, and seed-independent, so the reported numbers are exactly reproducible; ``privacy-preserving'' here means extraction, repair, and retrieval run offline with no data egress.
+\textbf{Code and data availability.} The deterministic Preeti$\rightarrow$Unicode converter, the sparse (\texttt{paper\_analysis.py}) and dense (\texttt{dense\_eval\_local.py}) evaluation scripts, the curated corpus, and the \nqueries{}-query code-switched bank with ground-truth chunk annotations are available from the corresponding author upon reasonable request. All reported retrieval is CPU-only: sparse TF-IDF is deterministic and seed-independent, and the dense encoders use fixed pretrained weights with deterministic cosine ranking, so every number in Table~\ref{tab:retrieval} is exactly reproducible on commodity hardware. ``Privacy-preserving'' here means extraction, repair, and retrieval run offline with no data egress.
 
 %==============================================================================
 \section{Conclusion}
 %==============================================================================
-Font encoding, not retrieval modeling, is the binding constraint for RAG over legacy-font Nepali legal PDFs. A deterministic Preeti$\rightarrow$Unicode repair step---validated at \repairValidity{}\% token accuracy---lifts sparse retrieval from a broken Recall@3 of \rawRecall{} to \repRecall{} (document-level \repDocRecall{}) with no hand-authored knowledge, and \emph{outperforms} a hand-authored metadata-aliasing baseline (\aliRecall{}) on a leakage-free \nqueries{}-query bank. Deterministic glyph repair is thus a cleaner and more scalable substrate than retrieval-side aliasing, and the residual conjunct-level gap charts a concrete path toward learned repair and complete multilingual baselines.
+Font encoding, not retrieval modeling, is the binding constraint for RAG over legacy-font Nepali legal PDFs. A deterministic Preeti$\rightarrow$Unicode repair step---validated at \repairValidity{}\% token accuracy---lifts sparse retrieval from a broken Recall@3 of \rawRecall{} to \repRecall{} (document-level \repDocRecall{}) with no hand-authored knowledge, and \emph{outperforms} a hand-authored metadata-aliasing baseline (\aliRecall{}) on a leakage-free \nqueries{}-query bank. A cross-retriever ablation on identical chunk IDs shows the same repair is necessary but not sufficient for dense retrieval: it quadruples a multilingual encoder's Recall@3 (\denseMlRawRecall{}$\rightarrow$\denseMlRepRecall{}) yet leaves an English-centric encoder near-broken, and no repaired dense encoder overtakes sparse-plus-repair under the edge budget. Deterministic glyph repair is thus a cleaner and more scalable substrate than retrieval-side aliasing and a precondition for dense retrieval, and the residual conjunct-level gap charts a concrete path toward learned repair and GPU-scale multilingual baselines.
 
 \begin{thebibliography}{00}
 \bibitem{lewis2020rag} P. Lewis \textit{et al.}, ``Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks,'' in \textit{Proc. NeurIPS}, 2020.

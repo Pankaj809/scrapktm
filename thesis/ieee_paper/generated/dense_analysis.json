@@ -1,0 +1,32 @@
+{
+  "n_queries": 50,
+  "n_chunks": 446,
+  "models": {
+    "all-MiniLM-L6-v2": {
+      "label": "MiniLM-L6 (EN)",
+      "raw": {
+        "recall3": 0.0,
+        "mrr3": 0.0,
+        "doc_recall3": 0.38
+      },
+      "repaired": {
+        "recall3": 0.06,
+        "mrr3": 0.05,
+        "doc_recall3": 0.3
+      }
+    },
+    "paraphrase-multilingual-MiniLM-L12-v2": {
+      "label": "mMiniLM-L12 (ML)",
+      "raw": {
+        "recall3": 0.04,
+        "mrr3": 0.026666666666666665,
+        "doc_recall3": 0.26
+      },
+      "repaired": {
+        "recall3": 0.16,
+        "mrr3": 0.13666666666666666,
+        "doc_recall3": 0.62
+      }
+    }
+  }
+}
