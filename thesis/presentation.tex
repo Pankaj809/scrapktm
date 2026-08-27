@@ -215,7 +215,7 @@
       \small\textit{Higher MRR = less noise for the LLM to filter.}
     \end{block}
   \end{columns}
-  \note{Use Recall@3 for hybrid system (11-query bank). Dense baseline used Recall@5 in embedding\_benchmark.py.}
+  \note{All numbers on the 50-query leakage-free bank. Sparse and dense scored on identical chunk IDs.}
 \end{frame}
 
 %==============================================================================
@@ -223,13 +223,13 @@
 \begin{frame}{Results: Why Raw Retrieval Fails}
   \textbf{Sparse TF-IDF on \emph{raw} extracted text:}
   \begin{itemize}
-    \item Recall@3 = \textbf{0.091}, MRR = \textbf{0.030} (only 1/11 queries hits)
+    \item Recall@3 = \textbf{0.060}, MRR = \textbf{0.023}, doc-level \textbf{0.140}
     \item Cause: 26/50 documents extract as Preeti font gibberish
-    \item Dense models (BGE-M3, MiniLM) exceed the offline memory budget $\rightarrow$ deferred, not reported as unmeasured zeros
+    \item Every retriever is broken on raw text --- both dense encoders score $\le$ 0.040
   \end{itemize}
   \vspace{0.2cm}
-  \textbf{Key result — deterministic Preeti $\rightarrow$ Unicode repair:} Recall@3 rises to \textbf{0.364} (doc-level \textbf{0.455}) with \emph{no} hand-authored aliases.
-  \note{Numbers from paper\_analysis.py. Repair is the contribution; aliasing is an oracle.}
+  \textbf{Key result — deterministic Preeti $\rightarrow$ Unicode repair:} Recall@3 rises to \textbf{0.520} (doc-level \textbf{0.800}) with \emph{no} hand-authored aliases.
+  \note{Numbers from paper\_analysis.py on the 50-query bank. Repair is the contribution.}
 \end{frame}
 
 %==============================================================================
@@ -253,9 +253,9 @@
         enlarge x limits=0.2,
         legend style={at={(0.5,-0.28)},anchor=north, legend columns=-1, font=\scriptsize}
       ]
-        \addplot[fill=RouteRed!50] coordinates {(Raw,0.091) (Repaired,0.364) (Aliased,1.0)};
+        \addplot[fill=RouteRed!50] coordinates {(Raw,0.060) (Repaired,0.520) (Aliased,0.260)};
         \addlegendentry{Recall@3}
-        \addplot[fill=RouteBlue!45] coordinates {(Raw,0.030) (Repaired,0.197) (Aliased,1.0)};
+        \addplot[fill=RouteBlue!45] coordinates {(Raw,0.023) (Repaired,0.380) (Aliased,0.237)};
         \addlegendentry{MRR}
       \end{axis}
     \end{tikzpicture}
@@ -265,15 +265,15 @@
       \toprule
       \textbf{System} & \textbf{R@3} & \textbf{MRR} & \textbf{DocR@3} \\
       \midrule
-      Raw corrupted & 0.091 & 0.030 & 0.091 \\
-      \textbf{Preeti repair} & \textbf{0.364} & \textbf{0.197} & \textbf{0.455} \\
-      Aliased (\emph{oracle}) & \emph{1.00} & \emph{1.00} & \emph{1.00} \\
+      Raw corrupted & 0.060 & 0.023 & 0.140 \\
+      \textbf{Preeti repair} & \textbf{0.520} & \textbf{0.380} & \textbf{0.800} \\
+      Aliasing (pilot) & 0.260 & 0.237 & 0.480 \\
       \bottomrule
     \end{tabular}
     \vspace{0.3cm}
-    \small Aliased row is an \textbf{oracle} (query leakage), not an operational score.
+    \small Repair \textbf{beats} hand-authored aliasing on the leakage-free 50-query bank.
   \end{columns}
-  \note{Repair is the real result; aliasing perfect score is leakage. Numbers from paper\_analysis.py.}
+  \note{Repair is the real result and generalizes; aliasing only helps its pilot chunks. Numbers from paper\_analysis.py.}
 \end{frame}
 
 %==============================================================================
@@ -308,9 +308,9 @@
   \textbf{What we showed}
   \begin{itemize}
     \item Built end-to-end pipeline: scrape $\rightarrow$ curate $\rightarrow$ extract $\rightarrow$ chunk $\rightarrow$ retrieve
-    \item Raw retrieval fails on corrupted Nepali PDF text (Recall@3 = 0.091)
-    \item \textbf{Deterministic Preeti $\rightarrow$ Unicode repair} lifts Recall@3 to \textbf{0.364} (doc-level 0.455) with no hand-authored aliases
-    \item Aliasing hits 1.000 but only as an \emph{oracle} (query leakage)
+    \item Raw retrieval fails on corrupted Nepali PDF text (Recall@3 = 0.060, 50-query bank)
+    \item \textbf{Deterministic Preeti $\rightarrow$ Unicode repair} lifts Recall@3 to \textbf{0.520} (doc-level 0.800) with no hand-authored aliases
+    \item Repair \emph{beats} hand-authored aliasing (0.260) and is necessary-but-not-sufficient for dense retrieval
     \item Local RAG grounds answers in municipal PDFs; direct LLMs do not
   \end{itemize}
   \textbf{Next steps}

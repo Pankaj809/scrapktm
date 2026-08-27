@@ -2,7 +2,7 @@
 
 Why this exists
 ---------------
-Your query bank `research_query_bank_v1.md` references chunk IDs from `chunks_v2` (e.g.
+Your query bank `research_query_bank_v2.md` references chunk IDs from `chunks_v2` (e.g.
 `LMC_MUN_004_sec2_chunk_4`), but the evaluation corpus uses a different chunk_id format
 (e.g. `LMC_MUN_004_section_17`).
 
@@ -26,7 +26,7 @@ Usage
 ./.venv/bin/python ground_truth_mapper.py \
   --chunks-v2-dir extraction_output/chunks_v2 \
   --chunks-dir extraction_output/chunks \
-  --query-bank-md research_query_bank_v1.md \
+  --query-bank-md research_query_bank_v2.md \
   --output-json ground_truth_mapping.json
 """
 
@@ -166,7 +166,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--chunks-v2-dir", type=Path, default=Path("extraction_output/chunks_v2"))
     ap.add_argument("--chunks-dir", type=Path, default=Path("extraction_output/chunks"))
-    ap.add_argument("--query-bank-md", type=Path, default=Path("research_query_bank_v1.md"))
+    ap.add_argument("--query-bank-md", type=Path, default=Path("research_query_bank_v2.md"))
     ap.add_argument("--output-json", type=Path, default=Path("ground_truth_mapping.json"))
     args = ap.parse_args()
 
