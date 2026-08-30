@@ -4,6 +4,9 @@
   "models": {
     "all-MiniLM-L6-v2": {
       "label": "MiniLM-L6 (EN)",
+      "params": 22700000,
+      "index_time_s": 4.125924110412598,
+      "peak_rss_mb": 792.5,
       "raw": {
         "recall3": 0.0,
         "mrr3": 0.0,
@@ -17,6 +20,9 @@
     },
     "paraphrase-multilingual-MiniLM-L12-v2": {
       "label": "mMiniLM-L12 (ML)",
+      "params": 118000000,
+      "index_time_s": 3.8442771434783936,
+      "peak_rss_mb": 1070.203125,
       "raw": {
         "recall3": 0.04,
         "mrr3": 0.026666666666666665,

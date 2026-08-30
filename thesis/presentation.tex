@@ -228,8 +228,8 @@
     \item Every retriever is broken on raw text --- both dense encoders score $\le$ 0.040
   \end{itemize}
   \vspace{0.2cm}
-  \textbf{Key result — deterministic Preeti $\rightarrow$ Unicode repair:} Recall@3 rises to \textbf{0.520} (doc-level \textbf{0.800}) with \emph{no} hand-authored aliases.
-  \note{Numbers from paper\_analysis.py on the 50-query bank. Repair is the contribution.}
+  \textbf{Key result — deterministic Preeti $\rightarrow$ Unicode repair:} sparse Recall@3 rises to \textbf{0.520} (doc-level \textbf{0.800}) with \emph{no} hand-authored aliases; repaired \textbf{BGE-M3} (dense, CPU-only) goes further, reaching Recall@3 = \textbf{0.700}.
+  \note{Numbers from paper\_analysis.py and dense\_eval\_bge\_m3.py on the 50-query bank. Repair is the contribution.}
 \end{frame}
 
 %==============================================================================
@@ -309,13 +309,13 @@
   \begin{itemize}
     \item Built end-to-end pipeline: scrape $\rightarrow$ curate $\rightarrow$ extract $\rightarrow$ chunk $\rightarrow$ retrieve
     \item Raw retrieval fails on corrupted Nepali PDF text (Recall@3 = 0.060, 50-query bank)
-    \item \textbf{Deterministic Preeti $\rightarrow$ Unicode repair} lifts Recall@3 to \textbf{0.520} (doc-level 0.800) with no hand-authored aliases
-    \item Repair \emph{beats} hand-authored aliasing (0.260) and is necessary-but-not-sufficient for dense retrieval
+    \item \textbf{Deterministic Preeti $\rightarrow$ Unicode repair} lifts sparse Recall@3 to \textbf{0.520} (doc-level 0.800) with no hand-authored aliases
+    \item Repair \emph{beats} hand-authored aliasing (0.260) and is necessary for dense retrieval, but only pays off with a capable, language-appropriate encoder: repaired \textbf{BGE-M3} reaches Recall@3 = \textbf{0.700}, overtaking sparse-plus-repair, CPU-only within a measured 1.68\,GB peak (2.0\,min to index all chunks)
     \item Local RAG grounds answers in municipal PDFs; direct LLMs do not
   \end{itemize}
   \textbf{Next steps}
   \begin{itemize}
-    \item Learned transliteration repair for lossy conjuncts; re-run BGE-M3 fairly
+    \item Learned transliteration repair for lossy conjuncts
     \item Add BM25 + dense fusion; expand human-labeled query bank
     \item Deploy citizen-facing chatbot with mandatory citations
   \end{itemize}
